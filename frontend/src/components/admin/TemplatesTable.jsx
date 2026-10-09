@@ -1,0 +1,1 @@
+export default function TemplatesTable() { return null }
