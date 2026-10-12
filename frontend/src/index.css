@@ -4405,3 +4405,23 @@ body.tpl-modal-open {
     max-height: calc(100vh - 62px) !important;
   }
 }
+/* ============================================================
+   GLOBAL DARK BACKGROUND (Public Pages)
+   ============================================================ */
+html,
+body {
+  background: #07051a;
+  color: #cbd5e1;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  min-height: 100vh;
+  background: #07051a;
+}
+
+/* Prevent scroll bounce white flash */
+body {
+  overscroll-behavior-y: none;
+}

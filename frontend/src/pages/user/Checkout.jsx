@@ -17,30 +17,60 @@ export default function Checkout() {
   const notify = useNotify()
   const navigate = useNavigate()
 
-  const [plans, setPlans] = useState([])
+  const [plan, setPlan] = useState(null)          // ✅ ONLY user's plan
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState(user?.preferred_plan?.id || null)
   const [payModal, setPayModal] = useState(false)
-  const [payStep, setPayStep] = useState('confirm') // confirm | processing | success
+  const [payStep, setPayStep] = useState('confirm')
   const [processing, setProcessing] = useState(false)
 
+  /* ============================================================
+     ✅ Fetch ONLY the user's preferred plan (locked)
+     ============================================================ */
   useEffect(() => {
     (async () => {
       try {
+        const preferredId =
+          user?.preferred_plan?.id ||
+          user?.preferred_plan?._id ||
+          user?.preferred_plan_id
+
+        if (!preferredId) {
+          notify.error('No plan selected. Please contact support.')
+          setLoading(false)
+          return
+        }
+
         const res = await pricingApi.list()
-        setPlans(res.data?.data?.plans || [])
-      } catch { notify.error('Failed to load plans') }
-      finally { setLoading(false) }
+        const allPlans = res.data?.data?.plans || []
+        const found = allPlans.find((p) => (p._id || p.id) === preferredId)
+
+        if (!found) {
+          // Fetch single plan fallback
+          try {
+            const single = await pricingApi.get(preferredId)
+            const p = single.data?.data?.plan
+            if (p) setPlan(p)
+            else notify.error('Your plan is not available')
+          } catch {
+            notify.error('Your plan is not available')
+          }
+        } else {
+          setPlan(found)
+        }
+      } catch {
+        notify.error('Failed to load your plan')
+      } finally {
+        setLoading(false)
+      }
     })()
   }, [])
 
-  const selectedPlan = plans.find((p) => (p._id || p.id) === selected)
   const template = (() => {
     try { return JSON.parse(localStorage.getItem(TEMPLATE_KEY) || 'null') } catch { return null }
   })()
 
   const startPay = () => {
-    if (!selected) { notify.error('Please select a plan first'); return }
+    if (!plan) { notify.error('Plan not available'); return }
     setPayStep('confirm')
     setPayModal(true)
   }
@@ -53,19 +83,22 @@ export default function Checkout() {
       navigate('/dashboard/website-form')
       return
     }
+    if (!plan) {
+      notify.error('Plan missing')
+      return
+    }
+
     setPayStep('processing')
     setProcessing(true)
     try {
-      // Simulate 1.5s for UX
       await new Promise((r) => setTimeout(r, 1400))
-      
-      // ✅ FIX: Intha object la user_id add panniten
+
       await paymentApi.dummyPay({
-        user_id: user?.id || user?._id, // <--- Intha line dhaan miss aagiruku
+        user_id: user?.id || user?._id,
         website_id: websiteId,
-        plan_id: selected,
+        plan_id: plan._id || plan.id,
       })
-      
+
       setPayStep('success')
       notify.success('Payment successful! Website published.')
     } catch (e) {
@@ -83,44 +116,69 @@ export default function Checkout() {
 
   if (loading) return <Loader />
 
+  if (!plan) {
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1 className="page-title">Checkout</h1>
+            <p className="page-sub">No plan found for your account</p>
+          </div>
+        </div>
+        <div className="card" style={{ padding: 40, textAlign: 'center' }}>
+          <p className="muted" style={{ marginBottom: 16 }}>
+            We couldn't find a plan assigned to your account.
+          </p>
+          <button className="btn btn-primary" onClick={() => navigate('/dashboard/website-form')}>
+            Go to Website Form
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="page-head">
         <div>
           <h1 className="page-title">Checkout</h1>
-          <p className="page-sub">Select a plan to publish your website</p>
+          <p className="page-sub">Confirm your plan and complete payment</p>
         </div>
       </div>
 
       <div className="checkout-grid">
-        {/* LEFT: Plan selection */}
+        {/* LEFT: Locked plan display */}
         <div>
           <div className="card" style={{ marginBottom: 20 }}>
-            <h3 className="card-title">Choose Your Plan</h3>
-            <div className="plan-list">
-              {plans.map((p) => {
-                const id = p._id || p.id
-                const isSelected = selected === id
-                return (
-                  <div key={id}
-                    className={`plan-card ${isSelected ? 'selected' : ''}`}
-                    onClick={() => setSelected(id)}
-                  >
-                    <div className="plan-info">
-                      <div className="plan-name">{p.name}</div>
-                      <div className="plan-desc">{p.description || '—'}</div>
-                    </div>
-                    <div className="plan-price">
-                      ₹{Number(p.price).toLocaleString('en-IN')}
-                      <span>one-time</span>
-                    </div>
-                    <div className="plan-check">
-                      {isSelected && <IconCheck size={11} />}
-                    </div>
-                  </div>
-                )
-              })}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 className="card-title" style={{ margin: 0 }}>Your Plan</h3>
+              <span className="lock-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2.5" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Locked
+              </span>
             </div>
+
+            <div className="plan-card selected locked">
+              <div className="plan-info">
+                <div className="plan-name">{plan.name}</div>
+                <div className="plan-desc">{plan.description || '—'}</div>
+              </div>
+              <div className="plan-price">
+                ₹{Number(plan.price).toLocaleString('en-IN')}
+                <span>one-time</span>
+              </div>
+              <div className="plan-check">
+                <IconCheck size={11} />
+              </div>
+            </div>
+
+            <p className="lock-note">
+              Your plan was selected during registration and cannot be changed here.
+              To switch plans, please <strong>contact support</strong>.
+            </p>
           </div>
 
           <div className="card" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }}>
@@ -146,7 +204,7 @@ export default function Checkout() {
             <h3 className="card-title">Order Summary</h3>
             <div className="summary-row">
               <span>Plan</span>
-              <strong>{selectedPlan?.name || '—'}</strong>
+              <strong>{plan.name}</strong>
             </div>
             <div className="summary-row">
               <span>Template</span>
@@ -162,11 +220,10 @@ export default function Checkout() {
             }}>
               <span style={{ fontSize: 15 }}>Total</span>
               <span style={{ fontSize: 24, fontWeight: 800, color: '#4f46e5' }}>
-                ₹{selectedPlan ? Number(selectedPlan.price).toLocaleString('en-IN') : 0}
+                ₹{Number(plan.price).toLocaleString('en-IN')}
               </span>
             </div>
-            <button className="btn btn-primary btn-block btn-lg" onClick={startPay}
-              disabled={!selected}>
+            <button className="btn btn-primary btn-block btn-lg" onClick={startPay}>
               <IconRocket size={16} /> Proceed to Pay
             </button>
           </div>
@@ -193,7 +250,7 @@ export default function Checkout() {
                 <div className="gpay-to">Paying</div>
                 <div className="gpay-merchant">Website Builder</div>
                 <div className="gpay-value">
-                  ₹{selectedPlan ? Number(selectedPlan.price).toLocaleString('en-IN') : 0}
+                  ₹{Number(plan.price).toLocaleString('en-IN')}
                 </div>
               </div>
 
@@ -217,7 +274,7 @@ export default function Checkout() {
               </div>
 
               <button className="btn btn-primary btn-block btn-lg" onClick={confirmPay}>
-                Pay ₹{selectedPlan ? Number(selectedPlan.price).toLocaleString('en-IN') : 0}
+                Pay ₹{Number(plan.price).toLocaleString('en-IN')}
               </button>
               <button className="btn btn-ghost btn-block" onClick={() => setPayModal(false)}>
                 Cancel
@@ -240,12 +297,12 @@ export default function Checkout() {
               </div>
               <h3>Payment Successful!</h3>
               <p className="muted">
-                ₹{selectedPlan ? Number(selectedPlan.price).toLocaleString('en-IN') : 0} paid successfully
+                ₹{Number(plan.price).toLocaleString('en-IN')} paid successfully
               </p>
               <div className="gpay-success-details">
                 <div className="summary-row">
                   <span>Plan</span>
-                  <strong>{selectedPlan?.name}</strong>
+                  <strong>{plan.name}</strong>
                 </div>
                 <div className="summary-row">
                   <span>Status</span>
@@ -259,6 +316,41 @@ export default function Checkout() {
           )}
         </div>
       </Modal>
+
+      {/* Lock styles */}
+      <style>{`
+        .lock-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 10.5px;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          background: linear-gradient(135deg, #fef3c7, #fde68a);
+          color: #92400e;
+          padding: 5px 10px;
+          border-radius: 999px;
+          border: 1px solid #fcd34d;
+        }
+        .plan-card.locked {
+          cursor: not-allowed;
+          pointer-events: none;
+          border-color: #c7d2fe;
+          background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, rgba(168,85,247,0.03) 100%);
+          box-shadow: 0 0 0 4px rgba(99,102,241,0.08);
+        }
+        .lock-note {
+          margin: 14px 0 0;
+          font-size: 12.5px;
+          color: #64748b;
+          line-height: 1.6;
+        }
+        .lock-note strong {
+          color: #4f46e5;
+          font-weight: 700;
+        }
+      `}</style>
     </div>
   )
 }

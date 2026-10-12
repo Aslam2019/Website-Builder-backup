@@ -19,7 +19,6 @@ def register_user(data):
     category_id = data.get("category_id") or data.get("category")
     preferred_plan_id = data.get("preferred_plan_id")
 
-    # Category must exist and be active
     if not category_id:
         return None, "Category is required"
     try:
@@ -29,11 +28,9 @@ def register_user(data):
     if not cat:
         return None, "Selected category is not available"
 
-    # Duplicate username check
     if db.users.find_one({"username": username}):
         return None, "Username already taken"
 
-    # Optional preferred plan
     plan_doc = None
     if preferred_plan_id:
         try:
@@ -80,11 +77,12 @@ def build_token_for(user):
 
 
 def get_user_public(user):
-    """Return safe fields only."""
+    """Return safe fields only. Includes feature_flags from plan."""
     db = get_db()
     category = None
     preferred_plan = None
 
+    # Category
     if user.get("category_id"):
         try:
             cat = db.categories.find_one({"_id": to_object_id(user["category_id"])})
@@ -93,6 +91,7 @@ def get_user_public(user):
         except Exception:
             category = None
 
+    # Preferred plan — WITH feature_flags (CRITICAL for plan restriction)
     if user.get("preferred_plan_id"):
         try:
             p = db.pricing_plans.find_one({"_id": user["preferred_plan_id"]})
@@ -101,6 +100,8 @@ def get_user_public(user):
                     "id": str(p["_id"]),
                     "name": p["name"],
                     "price": p["price"],
+                    # ✅ This makes Admin toggle → User feature work
+                    "feature_flags": p.get("feature_flags", {}) or {},
                 }
         except Exception:
             preferred_plan = None

@@ -12,6 +12,9 @@ from database.mongo import get_db
 websites_bp = Blueprint("websites", __name__)
 
 
+# ============================================================
+# CREATE (draft)
+# ============================================================
 @websites_bp.route("", methods=["POST"])
 @token_required
 def create():
@@ -23,6 +26,9 @@ def create():
     return success({"website": serialize_doc(doc)}, "Website created", 201)
 
 
+# ============================================================
+# LIST — User's own websites (Admin: ?all=true)
+# ============================================================
 @websites_bp.route("", methods=["GET"])
 @token_required
 def list_mine():
@@ -37,6 +43,51 @@ def list_mine():
     return success({"websites": serialize_doc(docs)})
 
 
+# ============================================================
+# ✅ MY-WEBSITE — Latest published website (for QR code)
+# ⚠️  MUST be defined BEFORE /<website_id> route
+# ============================================================
+@websites_bp.route("/my-website", methods=["GET", "OPTIONS"])
+@token_required
+def get_my_website():
+    """
+    Returns the user's most recent PUBLISHED website.
+    Used by frontend to generate QR code from live_url.
+    Returns null if no published website exists.
+    """
+    if request.method == "OPTIONS":
+        return "", 200
+
+    db = get_db()
+
+    # Find the latest published website for this user
+    doc = db.websites.find_one(
+        {
+            "user_id": g.user_id,
+            "status": "published",
+        },
+        sort=[("published_at", -1), ("updated_at", -1)],
+    )
+
+    # Fallback: if no "published" status found, try latest with live_url
+    if not doc:
+        doc = db.websites.find_one(
+            {
+                "user_id": g.user_id,
+                "live_url": {"$exists": True, "$ne": None, "$ne": ""},
+            },
+            sort=[("updated_at", -1)],
+        )
+
+    if not doc:
+        return success(None, "No published website found")
+
+    return success(serialize_doc(doc))
+
+
+# ============================================================
+# GET ONE — by ID
+# ============================================================
 @websites_bp.route("/<website_id>", methods=["GET"])
 @token_required
 def get_one(website_id):
@@ -52,6 +103,9 @@ def get_one(website_id):
     return success({"website": serialize_doc(doc)})
 
 
+# ============================================================
+# UPDATE
+# ============================================================
 @websites_bp.route("/<website_id>", methods=["PUT"])
 @token_required
 def edit(website_id):
@@ -65,6 +119,9 @@ def edit(website_id):
     return success({"website": serialize_doc(doc)}, "Website updated")
 
 
+# ============================================================
+# DELETE
+# ============================================================
 @websites_bp.route("/<website_id>", methods=["DELETE"])
 @token_required
 def remove(website_id):

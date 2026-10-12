@@ -8,11 +8,7 @@ import PublicRoute from './PublicRoute'
 
 // Public pages
 import Home from '../pages/public/Home'
-import About from '../pages/public/About'
-import HowItWorks from '../pages/public/HowItWorks'
-import WhyChooseUs from '../pages/public/WhyChooseUs'
-import Pricing from '../pages/public/Pricing'
-import Contact from '../pages/public/Contact'
+import Terms from '../pages/public/Terms'
 
 // Auth pages
 import Login from '../pages/auth/Login'
@@ -36,6 +32,7 @@ import ManagePricing from '../pages/admin/ManagePricing'
 import ManageWebsites from '../pages/admin/ManageWebsites'
 import ManagePayments from '../pages/admin/ManagePayments'
 import AdminSettings from '../pages/admin/AdminSettings'
+import ManageEnquiries from '../pages/admin/ManageEnquiries'
 
 // Generated website
 import GeneratedWebsite from '../pages/generated/GeneratedWebsite'
@@ -43,23 +40,16 @@ import GeneratedWebsite from '../pages/generated/GeneratedWebsite'
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* -------- Public ---------- */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/why-choose-us" element={<WhyChooseUs />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/terms/:slug" element={<Terms />} />
       </Route>
 
-      {/* -------- Auth (redirect if logged in) ---------- */}
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>
 
-      {/* -------- User dashboard ---------- */}
       <Route element={<ProtectedRoute />}>
         <Route element={<UserLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -72,7 +62,6 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      {/* -------- Admin ---------- */}
       <Route element={<AdminRoute />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboard />} />
@@ -83,13 +72,11 @@ export default function AppRoutes() {
           <Route path="/admin/websites" element={<ManageWebsites />} />
           <Route path="/admin/payments" element={<ManagePayments />} />
           <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin/enquiries" element={<ManageEnquiries />} />
         </Route>
       </Route>
 
-      {/* -------- Public generated website preview ---------- */}
       <Route path="/site/:websiteId" element={<GeneratedWebsite />} />
-
-      {/* -------- Fallback ---------- */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

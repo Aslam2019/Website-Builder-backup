@@ -6,6 +6,7 @@ from database.mongo import init_mongo, close_mongo
 from database.indexes import create_indexes
 from database.seed import run_all_seeds
 from middleware.error_handler import register_error_handlers
+from blueprints.settings import settings_bp
 
 
 def create_app():
@@ -42,7 +43,11 @@ def create_app():
     from blueprints.websites import websites_bp
     from blueprints.payments import payments_bp
     from blueprints.admin import admin_bp
+    from blueprints.enquiries import enquiries_bp
+# ... existing imports
 
+# Blueprint registration
+    app.register_blueprint(enquiries_bp, url_prefix="/api/enquiries")
     app.register_blueprint(auth_bp,        url_prefix="/api/auth")
     app.register_blueprint(categories_bp,  url_prefix="/api/categories")
     app.register_blueprint(pricing_bp,     url_prefix="/api/pricing")
@@ -51,6 +56,7 @@ def create_app():
     app.register_blueprint(websites_bp,    url_prefix="/api/websites")
     app.register_blueprint(payments_bp,    url_prefix="/api/payments")
     app.register_blueprint(admin_bp,       url_prefix="/api/admin")
+    app.register_blueprint(settings_bp, url_prefix="/api/settings")
 
     # Serve uploaded files
     @app.route("/uploads/<path:subpath>", methods=["GET"])

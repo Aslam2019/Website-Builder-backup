@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import g, jsonify
+from flask import request, g, jsonify
 
 
 def role_required(*allowed_roles):
@@ -7,6 +7,10 @@ def role_required(*allowed_roles):
     def decorator(f):
         @wraps(f)
         def decorated(*args, **kwargs):
+            # ✅ CRITICAL FIX: Allow OPTIONS preflight (CORS)
+            if request.method == "OPTIONS":
+                return "", 200
+
             if not hasattr(g, "role"):
                 return jsonify({"success": False, "message": "Unauthorized"}), 401
             if g.role not in allowed_roles:
@@ -17,7 +21,7 @@ def role_required(*allowed_roles):
 
 
 def admin_required(f):
-    return role_required("super_admin")(f)
+    return role_required("admin", "super_admin")(f)
 
 
 def user_required(f):

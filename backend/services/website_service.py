@@ -7,12 +7,13 @@ def _now():
     return datetime.now(timezone.utc)
 
 
+# ============================================================
+# CREATE (draft)
+# ============================================================
 def create_website(user_id, payload):
     """
     Create website record (draft).
-    payload: {
-        template_id, pricing_plan_id, form_data (dict)
-    }
+    payload: { template_id, pricing_plan_id, form_data (dict) }
     """
     db = get_db()
 
@@ -45,7 +46,7 @@ def create_website(user_id, payload):
     if not plan:
         return None, "Pricing plan not found or inactive"
 
-    # ---- Get category info (needed for slug + name) ----
+    # ---- Category info ----
     category = None
     if user.get("category_id"):
         try:
@@ -53,7 +54,7 @@ def create_website(user_id, payload):
         except Exception:
             category = None
 
-    # Website name = user's name from form_data or username
+    # Website name
     website_name = (
         form_data.get("full_name")
         or form_data.get("company_name")
@@ -66,8 +67,8 @@ def create_website(user_id, payload):
         "user_id": user["_id"],
         "username": user["username"],
         "category_id": user.get("category_id"),
-        "category_slug": category["slug"] if category else None,   # ← NEW
-        "category_name": category["name"] if category else None,   # ← NEW
+        "category_slug": category["slug"] if category else None,
+        "category_name": category["name"] if category else None,
         "template_id": tpl["_id"],
         "template_name": tpl["name"],
         "pricing_plan_id": plan["_id"],
@@ -75,8 +76,10 @@ def create_website(user_id, payload):
         "plan_price": plan["price"],
         "name": website_name,
         "form_data": form_data,
-        "status": "draft",        # draft | published
+        "status": "draft",              # draft | published
         "payment_status": "pending",
+        "live_url": None,               # ← set on publish
+        "published_at": None,           # ← set on publish
         "created_at": _now(),
         "updated_at": _now(),
     }
@@ -85,11 +88,71 @@ def create_website(user_id, payload):
     return doc, None
 
 
+# ============================================================
+# LIST
+# ============================================================
 def get_user_websites(user_id):
     db = get_db()
     return list(db.websites.find({"user_id": ObjectId(user_id)}).sort("created_at", -1))
 
 
+# ============================================================
+# ✅ GET MY PUBLISHED WEBSITE (for QR code)
+# ============================================================
+def get_my_published_website(user_id):
+    """
+    Latest published website for this user.
+    Returns None if no published website exists.
+    """
+    db = get_db()
+    return db.websites.find_one(
+        {
+            "user_id": ObjectId(user_id),
+            "status": "published",
+            "live_url": {"$exists": True, "$ne": None, "$ne": ""},
+        },
+        sort=[("published_at", -1), ("updated_at", -1)],
+    )
+
+
+# ============================================================
+# ✅ PUBLISH (sets live_url + status + published_at)
+# ============================================================
+def publish_website(website_id, user_id, live_url):
+    """
+    Mark a website as published.
+    Called from publish flow after CloudFront URL is generated.
+    
+    live_url example: 
+      'https://d18roj0r3oz2ym.cloudfront.net/aslam/salon/index.html'
+    """
+    db = get_db()
+
+    try:
+        website = db.websites.find_one({"_id": ObjectId(website_id)})
+    except Exception:
+        return None, "Invalid website id"
+
+    if not website:
+        return None, "Website not found"
+    if str(website["user_id"]) != str(user_id):
+        return None, "Access denied"
+
+    db.websites.update_one(
+        {"_id": ObjectId(website_id)},
+        {"$set": {
+            "status": "published",
+            "live_url": live_url,
+            "published_at": _now(),
+            "updated_at": _now(),
+        }}
+    )
+    return db.websites.find_one({"_id": ObjectId(website_id)}), None
+
+
+# ============================================================
+# GET BY ID
+# ============================================================
 def get_website_by_id(website_id):
     db = get_db()
     try:
@@ -98,6 +161,9 @@ def get_website_by_id(website_id):
         return None
 
 
+# ============================================================
+# UPDATE
+# ============================================================
 def update_website(website_id, user_id, payload, is_admin=False):
     db = get_db()
     try:
@@ -107,7 +173,6 @@ def update_website(website_id, user_id, payload, is_admin=False):
     if not doc:
         return None, "Website not found"
 
-    # Ownership check
     if not is_admin and str(doc["user_id"]) != str(user_id):
         return None, "You do not have access to this website"
 
@@ -124,6 +189,9 @@ def update_website(website_id, user_id, payload, is_admin=False):
     return db.websites.find_one({"_id": ObjectId(website_id)}), None
 
 
+# ============================================================
+# DELETE
+# ============================================================
 def delete_website(website_id, user_id, is_admin=False):
     db = get_db()
     try:

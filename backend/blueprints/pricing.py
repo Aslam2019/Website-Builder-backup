@@ -4,7 +4,8 @@ from middleware.role_middleware import admin_required
 from utils.responses import success, error
 from utils.helpers import serialize_doc, is_valid_object_id
 from services.pricing_service import (
-    list_plans, get_plan, create_plan, update_plan, delete_plan
+    list_plans, get_plan, create_plan, update_plan, delete_plan,
+    update_plan_feature_flags,      # ← NEW
 )
 from services.log_service import log_action
 
@@ -55,6 +56,31 @@ def edit_plan(plan_id):
     log_action(g.user_id, g.username, "pricing_update",
                target_type="pricing", target_id=plan_id)
     return success({"plan": serialize_doc(doc)}, "Plan updated")
+
+
+# ============================================================
+# ✅ NEW — Update only feature flags
+# ============================================================
+@pricing_bp.route("/<plan_id>/features", methods=["PUT"])
+@token_required
+@admin_required
+def update_features(plan_id):
+    if not is_valid_object_id(plan_id):
+        return error("Invalid plan id", 400)
+
+    data = request.get_json(silent=True) or {}
+    # Accept either { feature_flags: {...} } or {...} directly
+    flags = data.get("feature_flags") if isinstance(data.get("feature_flags"), dict) else data
+
+    doc, err = update_plan_feature_flags(plan_id, flags)
+    if err:
+        return error(err, 400)
+
+    log_action(g.user_id, g.username, "pricing_features_update",
+               target_type="pricing", target_id=plan_id,
+               metadata={"feature_flags": doc.get("feature_flags", {})})
+
+    return success({"plan": serialize_doc(doc)}, "Feature flags updated")
 
 
 @pricing_bp.route("/<plan_id>", methods=["DELETE"])

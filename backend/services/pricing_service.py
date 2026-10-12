@@ -3,8 +3,27 @@ from database.mongo import get_db
 from bson import ObjectId
 
 
+DEFAULT_FEATURE_FLAGS = {
+    "qr_code": False,
+    "whatsapp_button": False,
+    "custom_domain": False,
+    "priority_support": False,
+    "unlimited_pages": False,
+}
+
+
 def _now():
     return datetime.now(timezone.utc)
+
+
+def _normalize_flags(raw):
+    if not isinstance(raw, dict):
+        return dict(DEFAULT_FEATURE_FLAGS)
+    out = dict(DEFAULT_FEATURE_FLAGS)
+    for k, v in raw.items():
+        if k in DEFAULT_FEATURE_FLAGS:
+            out[k] = bool(v)
+    return out
 
 
 def list_plans(active_only=True):
@@ -15,7 +34,10 @@ def list_plans(active_only=True):
 
 def get_plan(plan_id):
     db = get_db()
-    return db.pricing_plans.find_one({"_id": ObjectId(plan_id)})
+    try:
+        return db.pricing_plans.find_one({"_id": ObjectId(plan_id)})
+    except Exception:
+        return None
 
 
 def create_plan(payload):
@@ -37,11 +59,14 @@ def create_plan(payload):
     if not isinstance(features, list):
         return None, "Features must be a list"
 
+    feature_flags = _normalize_flags(payload.get("feature_flags"))
+
     doc = {
         "name": name,
         "price": price,
         "description": (payload.get("description") or "").strip(),
         "features": [str(f).strip() for f in features if str(f).strip()],
+        "feature_flags": feature_flags,
         "is_active": bool(payload.get("is_active", True)),
         "created_at": _now(),
         "updated_at": _now(),
@@ -53,7 +78,10 @@ def create_plan(payload):
 
 def update_plan(plan_id, payload):
     db = get_db()
-    doc = db.pricing_plans.find_one({"_id": ObjectId(plan_id)})
+    try:
+        doc = db.pricing_plans.find_one({"_id": ObjectId(plan_id)})
+    except Exception:
+        return None, "Invalid plan id"
     if not doc:
         return None, "Plan not found"
 
@@ -73,8 +101,35 @@ def update_plan(plan_id, payload):
             return None, "Features must be a list"
         patch["features"] = [str(f).strip() for f in payload["features"] if str(f).strip()]
 
+    if "feature_flags" in payload:
+        patch["feature_flags"] = _normalize_flags(payload["feature_flags"])
+
     patch["updated_at"] = _now()
     db.pricing_plans.update_one({"_id": ObjectId(plan_id)}, {"$set": patch})
+    return db.pricing_plans.find_one({"_id": ObjectId(plan_id)}), None
+
+
+def update_plan_feature_flags(plan_id, feature_flags):
+    db = get_db()
+    try:
+        doc = db.pricing_plans.find_one({"_id": ObjectId(plan_id)})
+    except Exception:
+        return None, "Invalid plan id"
+    if not doc:
+        return None, "Plan not found"
+
+    if not isinstance(feature_flags, dict):
+        return None, "feature_flags must be an object"
+
+    current = _normalize_flags(doc.get("feature_flags"))
+    for k, v in feature_flags.items():
+        if k in DEFAULT_FEATURE_FLAGS:
+            current[k] = bool(v)
+
+    db.pricing_plans.update_one(
+        {"_id": ObjectId(plan_id)},
+        {"$set": {"feature_flags": current, "updated_at": _now()}}
+    )
     return db.pricing_plans.find_one({"_id": ObjectId(plan_id)}), None
 
 

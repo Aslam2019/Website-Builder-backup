@@ -10,6 +10,10 @@ def token_required(f):
     """Decorator: requires valid JWT. Sets g.user_id, g.username, g.role."""
     @wraps(f)
     def decorated(*args, **kwargs):
+        # ✅ CRITICAL: Allow OPTIONS preflight (CORS)
+        if request.method == "OPTIONS":
+            return "", 200
+
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             return jsonify({"success": False, "message": "Authorization token missing"}), 401
@@ -19,10 +23,10 @@ def token_required(f):
             payload = decode_jwt(token)
         except jwt.ExpiredSignatureError:
             return jsonify({"success": False, "message": "Token expired"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"success": False, "message": "Invalid token"}), 401
+        except jwt.InvalidTokenError as e:
+            return jsonify({"success": False, "message": f"Invalid token: {str(e)}"}), 401
 
-        # Verify user still exists and is active
+        # Verify user exists + active
         db = get_db()
         try:
             user = db.users.find_one({"_id": ObjectId(payload["sub"])})
