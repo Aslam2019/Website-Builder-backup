@@ -26,6 +26,60 @@ def _normalize_flags(raw):
     return out
 
 
+# ============================================================
+# ✅ Normalize features (support string + {text, type})
+# ============================================================
+def _normalize_features(features):
+    """
+    Normalize features to a list of {text, type} objects.
+
+    Accepts:
+      - Plain strings:  "1 Website"  →  {text: "1 Website", type: "positive"}
+      - Objects:        {"text": "1 Website", "type": "positive"}
+      - Legacy strings that look like dicts: "{'text': '...', 'type': 'positive'}"
+    """
+    if not isinstance(features, list):
+        return []
+
+    out = []
+    for f in features:
+        # Case 1: Object {text, type}
+        if isinstance(f, dict):
+            text = str(f.get("text", "")).strip()
+            if not text:
+                continue
+            ftype = "negative" if f.get("type") == "negative" else "positive"
+            out.append({"text": text, "type": ftype})
+            continue
+
+        # Case 2: String
+        if isinstance(f, str):
+            raw = f.strip()
+            if not raw:
+                continue
+
+            # Sub-case: string looks like a Python/JSON dict
+            if raw.startswith("{") and raw.endswith("}"):
+                try:
+                    import json
+                    parsed = json.loads(raw.replace("'", '"'))
+                    if isinstance(parsed, dict):
+                        text = str(parsed.get("text", "")).strip()
+                        if not text:
+                            continue
+                        ftype = "negative" if parsed.get("type") == "negative" else "positive"
+                        out.append({"text": text, "type": ftype})
+                        continue
+                except Exception:
+                    # Parse fail aana — plain text-ah treat pannunga
+                    pass
+
+            # Plain string
+            out.append({"text": raw, "type": "positive"})
+
+    return out
+
+
 def list_plans(active_only=True):
     db = get_db()
     q = {"is_active": True} if active_only else {}
@@ -65,7 +119,8 @@ def create_plan(payload):
         "name": name,
         "price": price,
         "description": (payload.get("description") or "").strip(),
-        "features": [str(f).strip() for f in features if str(f).strip()],
+        "terms": (payload.get("terms") or "").strip(),   # ✅ NEW
+        "features": _normalize_features(features),
         "feature_flags": feature_flags,
         "is_active": bool(payload.get("is_active", True)),
         "created_at": _now(),
@@ -86,7 +141,8 @@ def update_plan(plan_id, payload):
         return None, "Plan not found"
 
     patch = {}
-    for k in ("name", "description", "is_active"):
+    # ✅ "terms" add panniten
+    for k in ("name", "description", "is_active", "terms"):
         if k in payload:
             patch[k] = payload[k]
 
@@ -99,7 +155,7 @@ def update_plan(plan_id, payload):
     if "features" in payload:
         if not isinstance(payload["features"], list):
             return None, "Features must be a list"
-        patch["features"] = [str(f).strip() for f in payload["features"] if str(f).strip()]
+        patch["features"] = _normalize_features(payload["features"])
 
     if "feature_flags" in payload:
         patch["feature_flags"] = _normalize_flags(payload["feature_flags"])

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotify } from '../../context/NotificationContext'
@@ -13,6 +13,175 @@ const interStyle = {
   MozOsxFontSmoothing: 'grayscale',
 }
 
+/* ============================================================
+   ✅ PASSWORD VALIDATION
+   ============================================================ */
+const COMMON_PASSWORDS = [
+  'password', 'password1', 'password123', '123456', '12345678',
+  'qwerty', 'abc123', 'letmein', 'welcome', 'admin', 'admin123',
+  'iloveyou', 'monkey', 'dragon', 'master', 'sunshine', 'princess',
+  'football', 'baseball', 'welcome1', 'qwerty123', 'passw0rd',
+  'pass123', 'test123', 'user123', 'login123', 'changeme',
+]
+
+const getPasswordChecks = (password) => {
+  const p = password || ''
+  return {
+    length: p.length >= 8,
+    length10: p.length >= 10,
+    uppercase: /[A-Z]/.test(p),
+    lowercase: /[a-z]/.test(p),
+    number: /[0-9]/.test(p),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(p),
+    noSpaces: p.length > 0 && !/\s/.test(p),
+    notCommon: p.length > 0 && !COMMON_PASSWORDS.includes(p.toLowerCase()),
+    noRepeat: !/(.)\1{3,}/.test(p),
+    noSequence: !/(012|123|234|345|456|567|678|789|abc|bcd|cde|def)/i.test(p),
+  }
+}
+
+const getPasswordStrength = (password) => {
+  const p = password || ''
+  if (!p) return { level: 0, label: '', color: '#e5e7eb', score: 0 }
+  const checks = getPasswordChecks(p)
+  let score = 0
+  if (checks.length) score++
+  if (checks.uppercase) score++
+  if (checks.lowercase) score++
+  if (checks.number) score++
+  if (checks.special) score++
+  if (checks.length10) score++
+  if (checks.notCommon) score++
+  if (checks.noRepeat) score++
+  if (checks.noSequence) score++
+  if (!checks.notCommon) return { level: 1, label: 'Very Weak', color: '#dc2626', score: 0 }
+  if (score <= 3) return { level: 1, label: 'Weak', color: '#ef4444', score }
+  if (score <= 5) return { level: 2, label: 'Fair', color: '#f59e0b', score }
+  if (score <= 7) return { level: 3, label: 'Good', color: '#3b82f6', score }
+  return { level: 4, label: 'Strong', color: '#10b981', score }
+}
+
+/* ============================================================
+   ✅ CUSTOM SELECT COMPONENT (native select-a replace pannudhu)
+   ============================================================ */
+function CustomSelect({ value, onChange, options, placeholder, error, disabled }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const wrapperRef = useRef(null)
+  const searchInputRef = useRef(null)
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  // Close on Escape
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        setSearch('')
+      }
+    }
+    if (open) document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open])
+
+  // Auto-focus search when opens
+  useEffect(() => {
+    if (open && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50)
+    }
+  }, [open])
+
+  const selected = options.find((o) => String(o.value) === String(value))
+  const filtered = options.filter((o) =>
+    o.label.toLowerCase().includes(search.toLowerCase().trim())
+  )
+
+  const handleSelect = (opt) => {
+    onChange({ target: { name: 'category_id', value: opt.value } })
+    setOpen(false)
+    setSearch('')
+  }
+
+  return (
+    <div className="cs-wrap" ref={wrapperRef}>
+      <button
+        type="button"
+        className={`cs-trigger ${open ? 'is-open' : ''} ${error ? 'has-error' : ''} ${disabled ? 'is-disabled' : ''}`}
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+      >
+        <span className={`cs-trigger-text ${selected ? '' : 'is-placeholder'}`}>
+          {selected ? selected.label : placeholder}
+        </span>
+        <svg className="cs-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="cs-dropdown">
+          {options.length > 5 && (
+            <div className="cs-search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="21" y1="21" x2="16.5" y2="16.5" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="cs-search"
+                placeholder="Search…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="cs-options">
+            {filtered.length === 0 ? (
+              <div className="cs-empty">No results</div>
+            ) : (
+              filtered.map((opt) => {
+                const isSelected = String(opt.value) === String(value)
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`cs-option ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => handleSelect(opt)}
+                  >
+                    <span className="cs-option-label">{opt.label}</span>
+                    {isSelected && (
+                      <span className="cs-option-check">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                )
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ============================================================
+   MAIN
+   ============================================================ */
 export default function Register() {
   const { register, login } = useAuth()
   const notify = useNotify()
@@ -35,6 +204,7 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [pwFocused, setPwFocused] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -46,8 +216,6 @@ export default function Register() {
         ])
         if (!alive) return
         setCategories(cRes.data?.data?.categories || [])
-
-        // ✅ Filter: only Basic & Pro
         const allPlans = pRes.data?.data?.plans || []
         const filtered = allPlans.filter((p) => {
           const name = String(p.name || '').toLowerCase()
@@ -69,19 +237,46 @@ export default function Register() {
     setServerError('')
   }
 
+  const pwChecks = useMemo(() => getPasswordChecks(form.password), [form.password])
+  const pwStrength = useMemo(() => getPasswordStrength(form.password), [form.password])
+
   const validateStep1 = () => {
     const err = {}
     const u = form.username.trim()
+
     if (!u) err.username = 'Username is required'
     else if (!/^[a-zA-Z0-9_]{3,30}$/.test(u))
-      err.username = '3–30 chars (letters, numbers, underscore)'
-    if (!form.password) err.password = 'Password is required'
-    else if (form.password.length < 6) err.password = 'Minimum 6 characters'
-    if (form.password !== form.confirm_password)
+      err.username = '3–30 chars (letters, numbers, underscore only)'
+
+    if (!form.password) {
+      err.password = 'Password is required'
+    } else if (form.password.length < 8) {
+      err.password = `Password too short — at least 8 characters needed (now ${form.password.length})`
+    } else if (COMMON_PASSWORDS.includes(form.password.toLowerCase())) {
+      err.password = 'This password is too common. Choose something unique.'
+    } else if (!/[A-Z]/.test(form.password)) {
+      err.password = 'Add at least 1 uppercase letter (A–Z)'
+    } else if (!/[a-z]/.test(form.password)) {
+      err.password = 'Add at least 1 lowercase letter (a–z)'
+    } else if (!/[0-9]/.test(form.password)) {
+      err.password = 'Add at least 1 number (0–9)'
+    } else if (/\s/.test(form.password)) {
+      err.password = 'Password cannot contain spaces'
+    } else if (/(.)\1{3,}/.test(form.password)) {
+      err.password = 'Avoid repeating same character 4+ times (e.g., "aaaa")'
+    }
+
+    if (!form.confirm_password) {
+      err.confirm_password = 'Please confirm your password'
+    } else if (form.password !== form.confirm_password) {
       err.confirm_password = 'Passwords do not match'
+    }
+
     if (!form.mobile.trim()) err.mobile = 'Mobile number is required'
     else if (!isMobile(form.mobile)) err.mobile = 'Enter a valid 10-digit mobile'
+
     if (!form.category_id) err.category_id = 'Please select a category'
+
     setErrors(err)
     return Object.keys(err).length === 0
   }
@@ -97,14 +292,10 @@ export default function Register() {
     setStep(1)
   }
 
-  /* ============================================================
-     ✅ SUBMIT — Register + Auto-login + Redirect to Dashboard
-     ============================================================ */
   const submit = async () => {
     setSubmitting(true)
     setServerError('')
     try {
-      // 1. Register user
       await register({
         username: form.username.trim(),
         password: form.password,
@@ -113,19 +304,13 @@ export default function Register() {
         category_id: form.category_id,
         preferred_plan_id: form.preferred_plan_id || undefined,
       })
-
-      // 2. Show success state
       setSuccess(true)
       notify.success('Account created! Signing you in…')
 
-      // 3. Auto-login with same credentials
       try {
         const user = await login(form.username.trim(), form.password)
         const token = localStorage.getItem('token')
-
         if (!token) throw new Error('Auto-login failed')
-
-        // 4. Redirect to dashboard after brief delay (for success screen)
         setTimeout(() => {
           if (user?.role === 'admin' || user?.role === 'super_admin') {
             navigate('/admin', { replace: true })
@@ -133,14 +318,11 @@ export default function Register() {
             navigate('/dashboard', { replace: true })
           }
         }, 1800)
-
       } catch (loginErr) {
-        // Auto-login fail aana → login page-ku redirect with message
         console.warn('Auto-login failed:', loginErr)
         notify.warning('Account created! Please login manually.')
         setTimeout(() => navigate('/login'), 1800)
       }
-
     } catch (err) {
       const data = err?.response?.data
       const msg = data?.message || 'Registration failed'
@@ -158,25 +340,13 @@ export default function Register() {
 
   const slideClass = slideDir === 'right' ? 'slide-right' : 'slide-left'
 
-  /* Password strength */
-  const strength = (() => {
-    const p = form.password
-    if (!p) return { level: 0, label: '', color: '#e5e7eb' }
-    let score = 0
-    if (p.length >= 6) score++
-    if (p.length >= 10) score++
-    if (/[A-Z]/.test(p)) score++
-    if (/[0-9]/.test(p)) score++
-    if (/[^A-Za-z0-9]/.test(p)) score++
-    if (score <= 2) return { level: 1, label: 'Weak', color: '#ef4444' }
-    if (score <= 3) return { level: 2, label: 'Fair', color: '#f59e0b' }
-    if (score <= 4) return { level: 3, label: 'Good', color: '#3b82f6' }
-    return { level: 4, label: 'Strong', color: '#10b981' }
-  })()
+  const categoryOptions = useMemo(
+    () => categories.map((c) => ({ value: c._id || c.id, label: c.name })),
+    [categories]
+  )
 
   return (
     <div className="reg-root" style={interStyle}>
-      {/* Background */}
       <div className="reg-bg" aria-hidden="true">
         <div className="reg-blob reg-blob-1" />
         <div className="reg-blob reg-blob-2" />
@@ -185,7 +355,7 @@ export default function Register() {
       </div>
 
       <div className="reg-container">
-        {/* ========== LEFT — Branding ========== */}
+        {/* LEFT */}
         <aside className="reg-aside">
           <Link to="/" className="reg-brand">
             <span className="reg-brand-mark">WB</span>
@@ -244,11 +414,9 @@ export default function Register() {
           </div>
         </aside>
 
-        {/* ========== RIGHT — Form ========== */}
+        {/* RIGHT */}
         <main className="reg-main">
           <div className="reg-card">
-
-            {/* Back link */}
             {!success && (
               <div className="reg-top">
                 {step === 2 ? (
@@ -266,13 +434,10 @@ export default function Register() {
                     Home
                   </Link>
                 )}
-                <span className="reg-step-label">
-                  Step {step} of 2
-                </span>
+                <span className="reg-step-label">Step {step} of 2</span>
               </div>
             )}
 
-            {/* ================= SUCCESS ================= */}
             {success ? (
               <div className="reg-success">
                 <div className="reg-success-icon">
@@ -284,7 +449,6 @@ export default function Register() {
                 <p className="reg-success-sub">
                   Your account is ready. Taking you to your dashboard…
                 </p>
-
                 <div className="reg-creds">
                   <div className="reg-creds-label">Account Details</div>
                   <div className="reg-creds-row">
@@ -296,7 +460,6 @@ export default function Register() {
                     <strong className="reg-creds-val">{form.password}</strong>
                   </div>
                 </div>
-
                 <div className="reg-redirect-row">
                   <span className="reg-redirect-spinner" />
                   <span>Redirecting to dashboard…</span>
@@ -304,7 +467,6 @@ export default function Register() {
               </div>
             ) : (
               <>
-                {/* Head */}
                 <div className="reg-head">
                   <h1 className="reg-title">Create your account</h1>
                   <p className="reg-subtitle">
@@ -314,7 +476,6 @@ export default function Register() {
                   </p>
                 </div>
 
-                {/* Step indicator */}
                 <div className="reg-steps">
                   <div className={`reg-step ${step >= 1 ? 'active' : ''} ${step > 1 ? 'done' : ''}`}>
                     <div className="reg-step-dot">
@@ -333,7 +494,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Server error */}
                 {serverError && (
                   <div className="reg-alert-error">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -357,54 +517,130 @@ export default function Register() {
                       error={errors.username}
                       autoComplete="username"
                       autoFocus
+                      hint="3–30 chars, letters/numbers/underscore"
                     />
 
-                    <div className="reg-row">
-                      <Field
-                        id="reg-password"
-                        name="password"
-                        label="Password"
-                        type={showPw ? 'text' : 'password'}
-                        value={form.password}
-                        onChange={change}
-                        error={errors.password}
-                        autoComplete="new-password"
-                        toggle={showPw ? 'hide' : 'show'}
-                        onToggle={() => setShowPw(!showPw)}
-                      />
-                      <Field
-                        id="reg-confirm"
-                        name="confirm_password"
-                        label="Confirm"
-                        type={showCpw ? 'text' : 'password'}
-                        value={form.confirm_password}
-                        onChange={change}
-                        error={errors.confirm_password}
-                        autoComplete="new-password"
-                        toggle={showCpw ? 'hide' : 'show'}
-                        onToggle={() => setShowCpw(!showCpw)}
-                      />
+                    {/* Password */}
+                    <div className="reg-field">
+                      <label htmlFor="reg-password" className="reg-label">
+                        Password <span className="reg-req">*</span>
+                      </label>
+                      <div className="reg-input-wrap">
+                        <input
+                          id="reg-password"
+                          name="password"
+                          type={showPw ? 'text' : 'password'}
+                          value={form.password}
+                          onChange={change}
+                          onFocus={() => setPwFocused(true)}
+                          onBlur={() => setPwFocused(false)}
+                          autoComplete="new-password"
+                          className={`reg-input has-toggle ${errors.password ? 'has-error' : ''}`}
+                          placeholder="Create a strong password"
+                        />
+                        <button
+                          type="button"
+                          className="reg-input-toggle"
+                          onClick={() => setShowPw(!showPw)}
+                          tabIndex={-1}
+                          aria-label={showPw ? 'Hide password' : 'Show password'}
+                        >
+                          {showPw ? (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+
+                      {errors.password && <div className="reg-err">{errors.password}</div>}
+
+                      {(pwFocused || form.password) && (
+                        <div className="reg-pw-panel">
+                          <div className="reg-pw-strength">
+                            <div className="reg-pw-bars">
+                              {[1, 2, 3, 4].map((i) => (
+                                <span
+                                  key={i}
+                                  className="reg-pw-bar"
+                                  style={{ background: i <= pwStrength.level ? pwStrength.color : '#e5e7eb' }}
+                                />
+                              ))}
+                            </div>
+                            <span className="reg-pw-label" style={{ color: pwStrength.color }}>
+                              {pwStrength.label}
+                            </span>
+                          </div>
+                          <ul className="reg-pw-rules">
+                            <PwRule passed={pwChecks.length} text="At least 8 characters" />
+                            <PwRule passed={pwChecks.uppercase} text="One uppercase letter (A–Z)" />
+                            <PwRule passed={pwChecks.lowercase} text="One lowercase letter (a–z)" />
+                            <PwRule passed={pwChecks.number} text="One number (0–9)" />
+                            <PwRule passed={pwChecks.special} text="One special character (!@#$…)" optional />
+                            <PwRule passed={pwChecks.notCommon} text="Not a commonly used password" />
+                            <PwRule passed={pwChecks.noRepeat} text="No repeated characters (aaaa)" />
+                            <PwRule passed={pwChecks.noSequence} text="No simple sequences (1234, abcd)" />
+                          </ul>
+                        </div>
+                      )}
                     </div>
 
-                    {form.password && (
-                      <div className="reg-strength">
-                        <div className="reg-strength-bars">
-                          {[1, 2, 3, 4].map((i) => (
-                            <span
-                              key={i}
-                              className="reg-strength-bar"
-                              style={{
-                                background: i <= strength.level ? strength.color : '#e5e7eb',
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <span className="reg-strength-label" style={{ color: strength.color }}>
-                          {strength.label}
-                        </span>
+                    {/* Confirm Password */}
+                    <div className="reg-field">
+                      <label htmlFor="reg-confirm" className="reg-label">
+                        Confirm Password <span className="reg-req">*</span>
+                      </label>
+                      <div className="reg-input-wrap">
+                        <input
+                          id="reg-confirm"
+                          name="confirm_password"
+                          type={showCpw ? 'text' : 'password'}
+                          value={form.confirm_password}
+                          onChange={change}
+                          autoComplete="new-password"
+                          className={`reg-input has-toggle ${errors.confirm_password ? 'has-error' : ''}`}
+                          placeholder="Re-enter your password"
+                        />
+                        <button
+                          type="button"
+                          className="reg-input-toggle"
+                          onClick={() => setShowCpw(!showCpw)}
+                          tabIndex={-1}
+                          aria-label={showCpw ? 'Hide password' : 'Show password'}
+                        >
+                          {showCpw ? (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                              <line x1="1" y1="1" x2="23" y2="23" />
+                            </svg>
+                          ) : (
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                              <circle cx="12" cy="12" r="3" />
+                            </svg>
+                          )}
+                        </button>
                       </div>
-                    )}
+                      {errors.confirm_password && (
+                        <div className="reg-err">{errors.confirm_password}</div>
+                      )}
+                      {form.confirm_password && form.password === form.confirm_password && (
+                        <div className="reg-match-ok">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Passwords match
+                        </div>
+                      )}
+                    </div>
 
+                    {/* Mobile */}
                     <Field
                       id="reg-mobile"
                       name="mobile"
@@ -414,36 +650,22 @@ export default function Register() {
                       error={errors.mobile}
                       maxLength={10}
                       inputMode="numeric"
+                      hint="10-digit Indian mobile number"
                     />
 
+                    {/* ✅ CUSTOM CATEGORY DROPDOWN */}
                     <div className="reg-field">
-                      <label htmlFor="reg-category" className="reg-label">
+                      <label className="reg-label">
                         Business Category <span className="reg-req">*</span>
                       </label>
-                      <div className="reg-select-wrap">
-                        <select
-                          id="reg-category"
-                          name="category_id"
-                          className={`reg-select ${errors.category_id ? 'has-error' : ''}`}
-                          value={form.category_id}
-                          onChange={change}
-                          disabled={loadingOptions}
-                        >
-                          <option value="" disabled hidden></option>
-                          {loadingOptions ? (
-                            <option value="" disabled>Loading…</option>
-                          ) : (
-                            categories.map((c) => (
-                              <option key={c._id || c.id} value={c._id || c.id}>
-                                {c.name}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <svg className="reg-select-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="6 9 12 15 18 9" />
-                        </svg>
-                      </div>
+                      <CustomSelect
+                        value={form.category_id}
+                        onChange={change}
+                        options={categoryOptions}
+                        placeholder={loadingOptions ? 'Loading…' : 'Select a category'}
+                        error={errors.category_id}
+                        disabled={loadingOptions}
+                      />
                       {errors.category_id && <div className="reg-err">{errors.category_id}</div>}
                     </div>
 
@@ -471,15 +693,12 @@ export default function Register() {
                   <div className={`reg-step-content ${slideClass}`} key="step2">
                     <div className="reg-plans">
                       {plans.length === 0 && !loadingOptions && (
-                        <p className="reg-empty">
-                          No plans available. You can choose a plan later.
-                        </p>
+                        <p className="reg-empty">No plans available. You can choose a plan later.</p>
                       )}
                       {plans.map((p, idx) => {
                         const id = p._id || p.id
                         const selected = form.preferred_plan_id === id
                         const isPopular = idx === 1 || String(p.name || '').toLowerCase().includes('pro')
-
                         return (
                           <button
                             type="button"
@@ -487,10 +706,7 @@ export default function Register() {
                             className={`reg-plan ${selected ? 'selected' : ''} ${isPopular ? 'is-popular' : ''}`}
                             onClick={() => setForm({ ...form, preferred_plan_id: id })}
                           >
-                            {isPopular && (
-                              <span className="reg-plan-badge">POPULAR</span>
-                            )}
-
+                            {isPopular && <span className="reg-plan-badge">POPULAR</span>}
                             <div className="reg-plan-radio">
                               {selected && (
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -498,14 +714,12 @@ export default function Register() {
                                 </svg>
                               )}
                             </div>
-
                             <div className="reg-plan-info">
                               <div className="reg-plan-name">{p.name}</div>
                               <div className="reg-plan-desc">
                                 {p.description || (isPopular ? 'Best for growing businesses' : 'Perfect for getting started')}
                               </div>
                             </div>
-
                             <div className="reg-plan-price">
                               <div className="reg-plan-amount">
                                 <span>₹</span>
@@ -519,9 +733,7 @@ export default function Register() {
                     </div>
 
                     {form.preferred_plan_id && (
-                      <p className="reg-hint">
-                        You can change this any time before payment.
-                      </p>
+                      <p className="reg-hint">You can change this any time before payment.</p>
                     )}
 
                     <div className="reg-btn-row">
@@ -562,9 +774,6 @@ export default function Register() {
         </main>
       </div>
 
-      {/* ============================================================
-          STYLES
-          ============================================================ */}
       <style>{`
         /* ============ ROOT ============ */
         .reg-root {
@@ -577,7 +786,6 @@ export default function Register() {
           align-items: stretch;
         }
 
-        /* ============ BACKGROUND ============ */
         .reg-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
         .reg-blob { position: absolute; border-radius: 50%; filter: blur(120px); }
         .reg-blob-1 {
@@ -777,7 +985,6 @@ export default function Register() {
           max-width: 500px;
         }
 
-        /* Top bar */
         .reg-top {
           display: flex;
           align-items: center;
@@ -800,10 +1007,7 @@ export default function Register() {
           transition: all 0.15s ease;
           font-family: inherit;
         }
-        .reg-back:hover {
-          color: #6366f1;
-          background: rgba(99,102,241,0.06);
-        }
+        .reg-back:hover { color: #6366f1; background: rgba(99,102,241,0.06); }
         .reg-step-label {
           font-size: 12px;
           font-weight: 700;
@@ -812,7 +1016,6 @@ export default function Register() {
           color: #94a3b8;
         }
 
-        /* Head */
         .reg-head { margin-bottom: 28px; }
         .reg-title {
           font-size: 30px;
@@ -829,18 +1032,13 @@ export default function Register() {
           line-height: 1.55;
         }
 
-        /* Steps */
         .reg-steps {
           display: flex;
           align-items: center;
           gap: 12px;
           margin-bottom: 28px;
         }
-        .reg-step {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
+        .reg-step { display: flex; align-items: center; gap: 10px; }
         .reg-step-dot {
           width: 32px; height: 32px;
           border-radius: 50%;
@@ -872,9 +1070,7 @@ export default function Register() {
           color: #94a3b8;
         }
         .reg-step.active .reg-step-text,
-        .reg-step.done .reg-step-text {
-          color: #0f172a;
-        }
+        .reg-step.done .reg-step-text { color: #0f172a; }
         .reg-step-line {
           flex: 1;
           height: 2px;
@@ -882,11 +1078,8 @@ export default function Register() {
           border-radius: 2px;
           transition: background 0.3s ease;
         }
-        .reg-step-line.done {
-          background: linear-gradient(90deg, #6366f1, #a855f7);
-        }
+        .reg-step-line.done { background: linear-gradient(90deg, #6366f1, #a855f7); }
 
-        /* Alert */
         .reg-alert-error {
           display: flex;
           align-items: flex-start;
@@ -903,12 +1096,7 @@ export default function Register() {
         }
         .reg-alert-error svg { flex-shrink: 0; margin-top: 2px; }
 
-        /* Step content */
-        .reg-step-content {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
+        .reg-step-content { display: flex; flex-direction: column; gap: 16px; }
         .slide-right { animation: slideRight 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
         .slide-left { animation: slideLeft 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
         @keyframes slideRight {
@@ -921,7 +1109,7 @@ export default function Register() {
         }
 
         /* ============ FIELDS ============ */
-        .reg-field { display: flex; flex-direction: column; gap: 7px; }
+        .reg-field { display: flex; flex-direction: column; gap: 7px; position: relative; }
         .reg-label {
           font-size: 13px;
           font-weight: 600;
@@ -929,12 +1117,6 @@ export default function Register() {
           letter-spacing: -0.005em;
         }
         .reg-req { color: #ef4444; }
-
-        .reg-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
 
         .reg-input-wrap { position: relative; }
         .reg-input {
@@ -957,9 +1139,7 @@ export default function Register() {
           box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
         }
         .reg-input.has-error { border-color: #ef4444; }
-        .reg-input.has-error:focus {
-          box-shadow: 0 0 0 4px rgba(239,68,68,0.12);
-        }
+        .reg-input.has-error:focus { box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
         .reg-input.has-toggle { padding-right: 46px; }
 
         .reg-input-toggle {
@@ -978,22 +1158,36 @@ export default function Register() {
           cursor: pointer;
           transition: all 0.12s ease;
         }
-        .reg-input-toggle:hover {
-          color: #6366f1;
-          background: #eef2ff;
-        }
+        .reg-input-toggle:hover { color: #6366f1; background: #eef2ff; }
 
-        .reg-err {
+        .reg-err { font-size: 12px; font-weight: 500; color: #ef4444; }
+        .reg-hint-text { font-size: 11.5px; color: #94a3b8; margin: 0; }
+
+        .reg-match-ok {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
           font-size: 12px;
-          font-weight: 500;
-          color: #ef4444;
+          font-weight: 600;
+          color: #059669;
         }
 
-        /* Select */
-        .reg-select-wrap { position: relative; }
-        .reg-select {
+        /* ============================================================
+           ✅ CUSTOM SELECT
+           ============================================================ */
+        .cs-wrap {
+          position: relative;
           width: 100%;
-          padding: 13px 42px 13px 14px;
+          z-index: 10;
+        }
+
+        .cs-trigger {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          width: 100%;
+          padding: 13px 14px;
           font-size: 14px;
           font-family: inherit;
           color: #0f172a;
@@ -1001,51 +1195,234 @@ export default function Register() {
           border: 1.5px solid #e2e8f0;
           border-radius: 12px;
           outline: none;
-          appearance: none;
-          -webkit-appearance: none;
           cursor: pointer;
           transition: all 0.15s ease;
+          text-align: left;
           box-sizing: border-box;
         }
-        .reg-select:hover { border-color: #cbd5e1; }
-        .reg-select:focus {
+        .cs-trigger:hover { border-color: #cbd5e1; }
+        .cs-trigger.is-open {
           border-color: #6366f1;
           box-shadow: 0 0 0 4px rgba(99,102,241,0.12);
         }
-        .reg-select.has-error { border-color: #ef4444; }
-        .reg-select:disabled { opacity: 0.6; cursor: wait; }
-        .reg-select-icon {
-          position: absolute;
-          top: 50%;
-          right: 14px;
-          transform: translateY(-50%);
+        .cs-trigger.has-error { border-color: #ef4444; }
+        .cs-trigger.has-error.is-open { box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
+        .cs-trigger.is-disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          background: #f8fafc;
+        }
+        .cs-trigger-text {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cs-trigger-text.is-placeholder { color: #94a3b8; }
+        .cs-arrow {
+          flex-shrink: 0;
           color: #64748b;
-          pointer-events: none;
+          transition: transform 0.25s ease;
+        }
+        .cs-trigger.is-open .cs-arrow {
+          transform: rotate(180deg);
+          color: #6366f1;
         }
 
-        /* Password strength */
-        .reg-strength {
+        .cs-dropdown {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          right: 0;
+          z-index: 100;
+          background: #fff;
+          border: 1.5px solid #e2e8f0;
+          border-radius: 12px;
+          box-shadow:
+            0 20px 40px -12px rgba(15, 23, 42, 0.15),
+            0 8px 16px -8px rgba(15, 23, 42, 0.08);
+          overflow: hidden;
+          animation: csDropdownIn 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+          max-height: 300px;
+          display: flex;
+          flex-direction: column;
+        }
+        @keyframes csDropdownIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .cs-search-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          border-bottom: 1px solid #f1f5f9;
+          color: #94a3b8;
+          flex-shrink: 0;
+        }
+        .cs-search {
+          flex: 1;
+          min-width: 0;
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 13.5px;
+          font-family: inherit;
+          color: #0f172a;
+          padding: 2px 0;
+        }
+        .cs-search::placeholder { color: #cbd5e1; }
+
+        .cs-options {
+          overflow-y: auto;
+          flex: 1;
+          padding: 6px;
+          max-height: 240px;
+        }
+        .cs-options::-webkit-scrollbar { width: 6px; }
+        .cs-options::-webkit-scrollbar-track { background: transparent; }
+        .cs-options::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+        .cs-options::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+        .cs-option {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          width: 100%;
+          padding: 10px 12px;
+          font-size: 14px;
+          font-family: inherit;
+          font-weight: 500;
+          color: #334155;
+          background: transparent;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.12s ease;
+        }
+        .cs-option:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+        .cs-option.is-selected {
+          background: linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(168,85,247,0.06) 100%);
+          color: #4f46e5;
+          font-weight: 700;
+        }
+        .cs-option.is-selected:hover {
+          background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(168,85,247,0.1) 100%);
+        }
+        .cs-option-label {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .cs-option-check {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #6366f1, #a855f7);
+          color: #fff;
+          flex-shrink: 0;
+        }
+
+        .cs-empty {
+          padding: 20px 12px;
+          text-align: center;
+          font-size: 13px;
+          color: #94a3b8;
+        }
+
+        /* ============================================================
+           PASSWORD PANEL
+           ============================================================ */
+        .reg-pw-panel {
+          margin-top: 4px;
+          padding: 14px 14px 12px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          animation: pwPanelIn 0.25s ease;
+        }
+        @keyframes pwPanelIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .reg-pw-strength {
           display: flex;
           align-items: center;
           gap: 10px;
-          margin-top: -4px;
+          margin-bottom: 12px;
+          padding-bottom: 12px;
+          border-bottom: 1px dashed #e2e8f0;
         }
-        .reg-strength-bars {
-          display: flex;
-          gap: 4px;
+        .reg-pw-bars { display: flex; gap: 4px; flex: 1; }
+        .reg-pw-bar {
           flex: 1;
-        }
-        .reg-strength-bar {
-          flex: 1;
-          height: 4px;
+          height: 5px;
           border-radius: 999px;
-          transition: background 0.2s ease;
+          transition: background 0.25s ease;
         }
-        .reg-strength-label {
-          font-size: 11px;
+        .reg-pw-label {
+          font-size: 10.5px;
           font-weight: 800;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
+          white-space: nowrap;
+        }
+
+        .reg-pw-rules {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+        .reg-pw-rule {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12.5px;
+          font-weight: 500;
+          color: #94a3b8;
+          transition: color 0.2s ease;
+        }
+        .reg-pw-rule.is-passed { color: #059669; }
+        .reg-pw-rule-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 16px; height: 16px;
+          border-radius: 50%;
+          background: #e2e8f0;
+          color: #94a3b8;
+          flex-shrink: 0;
+          transition: all 0.25s ease;
+        }
+        .reg-pw-rule.is-passed .reg-pw-rule-icon {
+          background: #d1fae5;
+          color: #059669;
+        }
+        .reg-pw-rule-icon svg { width: 9px; height: 9px; }
+        .reg-pw-rule-optional {
+          font-size: 10.5px;
+          color: #94a3b8;
+          font-style: italic;
+          margin-left: 4px;
         }
 
         /* ============ BUTTONS ============ */
@@ -1073,10 +1450,7 @@ export default function Register() {
           transform: translateY(-1px);
           box-shadow: 0 14px 32px -10px rgba(99,102,241,0.9);
         }
-        .reg-btn-primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .reg-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .reg-btn-primary svg { transition: transform 0.2s; }
         .reg-btn-primary:hover:not(:disabled) svg { transform: translateX(2px); }
 
@@ -1098,10 +1472,7 @@ export default function Register() {
           cursor: pointer;
           transition: all 0.15s ease;
         }
-        .reg-btn-outline:hover:not(:disabled) {
-          border-color: #cbd5e1;
-          background: #f8fafc;
-        }
+        .reg-btn-outline:hover:not(:disabled) { border-color: #cbd5e1; background: #f8fafc; }
         .reg-btn-outline:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .reg-spinner {
@@ -1113,18 +1484,13 @@ export default function Register() {
         }
         @keyframes regSpin { to { transform: rotate(360deg); } }
 
-        /* Foot */
         .reg-foot {
           text-align: center;
           font-size: 13.5px;
           color: #64748b;
           margin-top: 8px;
         }
-        .reg-foot a {
-          color: #6366f1;
-          font-weight: 700;
-          text-decoration: none;
-        }
+        .reg-foot a { color: #6366f1; font-weight: 700; text-decoration: none; }
         .reg-foot a:hover { text-decoration: underline; }
 
         .reg-hint {
@@ -1174,14 +1540,11 @@ export default function Register() {
           background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(168,85,247,0.04) 100%);
           box-shadow: 0 0 0 4px rgba(99,102,241,0.1);
         }
-        .reg-plan.is-popular {
-          border-color: rgba(168,85,247,0.4);
-        }
+        .reg-plan.is-popular { border-color: rgba(168,85,247,0.4); }
         .reg-plan.is-popular.selected {
           border-color: #a855f7;
           box-shadow: 0 0 0 4px rgba(168,85,247,0.12);
         }
-
         .reg-plan-badge {
           position: absolute;
           top: -10px;
@@ -1195,7 +1558,6 @@ export default function Register() {
           border-radius: 999px;
           box-shadow: 0 4px 12px -3px rgba(168,85,247,0.6);
         }
-
         .reg-plan-radio {
           width: 24px; height: 24px;
           border-radius: 50%;
@@ -1212,7 +1574,6 @@ export default function Register() {
           background: linear-gradient(135deg, #6366f1, #a855f7);
           border-color: transparent;
         }
-
         .reg-plan-info { min-width: 0; }
         .reg-plan-name {
           font-size: 15px;
@@ -1226,7 +1587,6 @@ export default function Register() {
           color: #64748b;
           line-height: 1.45;
         }
-
         .reg-plan-price { text-align: right; }
         .reg-plan-amount {
           font-size: 20px;
@@ -1250,10 +1610,7 @@ export default function Register() {
         }
 
         /* ============ SUCCESS ============ */
-        .reg-success {
-          text-align: center;
-          padding: 20px 8px;
-        }
+        .reg-success { text-align: center; padding: 20px 8px; }
         .reg-success-icon {
           width: 76px; height: 76px;
           margin: 0 auto 22px;
@@ -1278,11 +1635,7 @@ export default function Register() {
           letter-spacing: -0.025em;
           margin: 0 0 8px;
         }
-        .reg-success-sub {
-          font-size: 14px;
-          color: #64748b;
-          margin: 0 0 24px;
-        }
+        .reg-success-sub { font-size: 14px; color: #64748b; margin: 0 0 24px; }
 
         .reg-creds {
           background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
@@ -1307,9 +1660,7 @@ export default function Register() {
           font-size: 13.5px;
           padding: 8px 0;
         }
-        .reg-creds-row + .reg-creds-row {
-          border-top: 1px dashed #bbf7d0;
-        }
+        .reg-creds-row + .reg-creds-row { border-top: 1px dashed #bbf7d0; }
         .reg-creds-key { color: #166534; font-weight: 500; }
         .reg-creds-val {
           color: #065f46;
@@ -1338,7 +1689,6 @@ export default function Register() {
         /* ============================================================
            RESPONSIVE
            ============================================================ */
-
         @media (max-width: 1024px) {
           .reg-container { grid-template-columns: 1fr; }
           .reg-aside { display: none; }
@@ -1351,28 +1701,14 @@ export default function Register() {
         }
 
         @media (max-width: 768px) {
-          .reg-main {
-            padding: 24px 20px;
-            align-items: flex-start;
-          }
+          .reg-main { padding: 24px 20px; align-items: flex-start; }
           .reg-card { max-width: 100%; padding-top: 12px; }
           .reg-title { font-size: 25px; }
           .reg-subtitle { font-size: 13.5px; }
           .reg-head { margin-bottom: 22px; }
           .reg-top { margin-bottom: 24px; }
-
           .reg-steps { margin-bottom: 24px; }
           .reg-step-text { font-size: 12px; }
-
-          .reg-row {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-
-          .reg-input, .reg-select {
-            padding: 12px 13px;
-            font-size: 14px;
-          }
 
           .reg-plan {
             grid-template-columns: auto 1fr;
@@ -1411,7 +1747,7 @@ export default function Register() {
 
           .reg-btn-primary { padding: 13px 18px; font-size: 14px; }
 
-          .reg-input, .reg-select {
+          .reg-input, .cs-trigger {
             padding: 11px 12px;
             font-size: 13.5px;
             border-radius: 11px;
@@ -1419,10 +1755,13 @@ export default function Register() {
           .reg-input.has-toggle { padding-right: 42px; }
 
           .reg-creds { padding: 16px; }
+          .reg-pw-panel { padding: 12px; }
+          .reg-pw-rule { font-size: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .slide-right, .slide-left, .reg-spinner, .reg-success-icon, .reg-redirect-spinner {
+          .slide-right, .slide-left, .reg-spinner, .reg-success-icon,
+          .reg-redirect-spinner, .reg-pw-panel, .cs-dropdown {
             animation: none !important;
           }
           .reg-btn-primary:hover, .reg-plan:hover { transform: none !important; }
@@ -1433,12 +1772,12 @@ export default function Register() {
 }
 
 /* ============================================================
-   REUSABLE FIELD COMPONENT
+   REUSABLE FIELD
    ============================================================ */
 function Field({
   id, name, label, value, onChange, error,
   type = 'text', autoComplete, autoFocus,
-  maxLength, inputMode, toggle, onToggle,
+  maxLength, inputMode, toggle, onToggle, hint,
 }) {
   return (
     <div className="reg-field">
@@ -1452,7 +1791,6 @@ function Field({
           type={type}
           value={value}
           onChange={onChange}
-          placeholder=""
           autoComplete={autoComplete}
           autoFocus={autoFocus}
           maxLength={maxLength}
@@ -1481,7 +1819,33 @@ function Field({
           </button>
         )}
       </div>
+      {hint && !error && <div className="reg-hint-text">{hint}</div>}
       {error && <div className="reg-err">{error}</div>}
     </div>
+  )
+}
+
+/* ============================================================
+   PASSWORD RULE
+   ============================================================ */
+function PwRule({ passed, text, optional }) {
+  return (
+    <li className={`reg-pw-rule ${passed ? 'is-passed' : ''}`}>
+      <span className="reg-pw-rule-icon">
+        {passed ? (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+        )}
+      </span>
+      <span>
+        {text}
+        {optional && <span className="reg-pw-rule-optional">(optional)</span>}
+      </span>
+    </li>
   )
 }

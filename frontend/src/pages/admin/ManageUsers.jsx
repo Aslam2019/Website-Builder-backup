@@ -83,12 +83,56 @@ const IconChevronDown = ({ size = 14 }) => (
     <polyline points="6 9 12 15 18 9" />
   </svg>
 )
+const IconChevronLeft = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6" />
+  </svg>
+)
+const IconChevronRight = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+)
 const IconSort = ({ size = 12 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="8 6 12 2 16 6" /><polyline points="16 18 12 22 8 18" />
     <line x1="12" y1="2" x2="12" y2="22" />
   </svg>
 )
+
+/* ============================================================
+   ✅ PAGINATION HELPER
+   ============================================================ */
+const getPageNumbers = (current, total) => {
+  const delta = 1
+  const range = []
+  const rangeWithDots = []
+  let l
+
+  for (let i = 1; i <= total; i++) {
+    if (
+      i === 1 ||
+      i === total ||
+      (i >= current - delta && i <= current + delta)
+    ) {
+      range.push(i)
+    }
+  }
+
+  for (const i of range) {
+    if (l) {
+      if (i - l === 2) {
+        rangeWithDots.push(l + 1)
+      } else if (i - l !== 1) {
+        rangeWithDots.push('...')
+      }
+    }
+    rangeWithDots.push(i)
+    l = i
+  }
+
+  return rangeWithDots
+}
 
 /* ============================================================
    HELPERS
@@ -162,6 +206,10 @@ export default function ManageUsers() {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [planFilter, setPlanFilter] = useState('all')
   const [actionLoadingId, setActionLoadingId] = useState(null)
+
+  /* ✅ Pagination state */
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   /* -------- Modal state -------- */
   const [viewUser, setViewUser] = useState(null)
@@ -293,7 +341,7 @@ export default function ManageUsers() {
     return { total, active, inactive }
   }, [users])
 
-  /* ---------- Filters ---------- */
+  /* ---------- Filter options ---------- */
   const categories = useMemo(() => {
     const set = new Set()
     users.forEach((u) => {
@@ -310,6 +358,7 @@ export default function ManageUsers() {
     return Array.from(set).sort()
   }, [users])
 
+  /* ---------- Filtered ---------- */
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return users.filter((u) => {
@@ -325,6 +374,18 @@ export default function ManageUsers() {
       )
     })
   }, [users, query, statusFilter, categoryFilter, planFilter])
+
+  /* ---------- ✅ Pagination math ---------- */
+  const totalItems = filtered.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems)
+  const paginated = filtered.slice(startIndex, endIndex)
+
+  /* ---------- ✅ Auto reset to page 1 on filter/search change ---------- */
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [query, statusFilter, categoryFilter, planFilter, itemsPerPage])
 
   if (loading) return <Loader />
   if (error) return <ErrorState message={error} onRetry={load} />
@@ -457,7 +518,7 @@ export default function ManageUsers() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((u) => {
+                  {paginated.map((u) => {
                     const initial = (u.username || '?').charAt(0).toUpperCase()
                     const avatarColor = getAvatarColor(u.username)
                     const catName = u.category?.name || '—'
@@ -551,7 +612,6 @@ export default function ManageUsers() {
                           </span>
                         </td>
 
-                        {/* -------- ACTIONS (3 buttons only) -------- */}
                         <td className="um-td-actions">
                           <div className="um-actions">
                             <button
@@ -589,7 +649,7 @@ export default function ManageUsers() {
 
             {/* ==================== MOBILE CARDS ==================== */}
             <div className="um-mobile">
-              {filtered.map((u) => {
+              {paginated.map((u) => {
                 const initial = (u.username || '?').charAt(0).toUpperCase()
                 const avatarColor = getAvatarColor(u.username)
                 const catName = u.category?.name || '—'
@@ -684,20 +744,11 @@ export default function ManageUsers() {
                       </div>
                     </div>
 
-                    {/* 3 buttons only */}
                     <div className="um-card-actions">
-                      <button
-                        className="um-icon-btn"
-                        title="View"
-                        onClick={() => openView(u)}
-                      >
+                      <button className="um-icon-btn" title="View" onClick={() => openView(u)}>
                         <IconEye size={16} />
                       </button>
-                      <button
-                        className="um-icon-btn"
-                        title="Edit"
-                        onClick={() => openEdit(u)}
-                      >
+                      <button className="um-icon-btn" title="Edit" onClick={() => openEdit(u)}>
                         <IconEdit size={16} />
                       </button>
                       <button
@@ -714,6 +765,71 @@ export default function ManageUsers() {
               })}
             </div>
           </>
+        )}
+
+        {/* ============================================================
+            ✅ PAGINATION
+            ============================================================ */}
+        {totalItems > 0 && (
+          <div className="um-pagination">
+            <div className="um-pag-left">
+              <span className="um-pag-info">
+                Showing <strong>{startIndex + 1}</strong>–<strong>{endIndex}</strong> of{' '}
+                <strong>{totalItems}</strong> users
+              </span>
+
+              <div className="um-pag-size">
+                <label>Rows:</label>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  style={interStyle}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="um-pag-right">
+              <button
+                className="um-pag-btn"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                aria-label="Previous page"
+              >
+                <IconChevronLeft size={15} />
+              </button>
+
+              <div className="um-pag-numbers">
+                {getPageNumbers(currentPage, totalPages).map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`dots-${idx}`} className="um-pag-dots">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      className={`um-pag-num ${currentPage === p ? 'is-active' : ''}`}
+                      onClick={() => setCurrentPage(p)}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              </div>
+
+              <button
+                className="um-pag-btn"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                aria-label="Next page"
+              >
+                <IconChevronRight size={15} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

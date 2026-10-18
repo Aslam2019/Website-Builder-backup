@@ -35,13 +35,13 @@ const IconEdit = ({ size = 16 }) => (
 )
 
 const IconCheck = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 )
 
 const IconX = ({ size = 16 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
@@ -56,6 +56,15 @@ const IconTrash = ({ size = 16 }) => (
   </svg>
 )
 
+/* ✅ Feature normalize */
+const normalizeFeature = (f) => {
+  if (typeof f === 'string') return { text: f, type: 'positive' }
+  return {
+    text: f?.text || '',
+    type: f?.type === 'negative' ? 'negative' : 'positive',
+  }
+}
+
 export default function ManagePricing() {
   const notify = useNotify()
   const [plans, setPlans] = useState([])
@@ -63,8 +72,12 @@ export default function ManagePricing() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({
-    name: '', price: '', description: '',
-    features: [''], is_active: true,
+    name: '',
+    price: '',
+    description: '',
+    terms: '',
+    features: [{ text: '', type: 'positive' }],
+    is_active: true,
   })
   const [saving, setSaving] = useState(false)
 
@@ -85,42 +98,86 @@ export default function ManagePricing() {
 
   useEffect(() => { load() }, [])
 
+  /* ✅ openNew — terms add panniten */
   const openNew = () => {
     setEditing(null)
-    setForm({ name: '', price: '', description: '', features: [''], is_active: true })
+    setForm({
+      name: '',
+      price: '',
+      description: '',
+      terms: '',
+      features: [{ text: '', type: 'positive' }],
+      is_active: true,
+    })
     setModalOpen(true)
   }
 
+  /* ✅ openEdit — terms add panniten */
   const openEdit = (p) => {
     setEditing(p)
     setForm({
       name: p.name,
       price: p.price,
       description: p.description || '',
-      features: p.features?.length ? p.features : [''],
+      terms: p.terms || '',
+      features:
+        p.features?.length
+          ? p.features.map(normalizeFeature)
+          : [{ text: '', type: 'positive' }],
       is_active: p.is_active,
     })
     setModalOpen(true)
   }
 
-  const updateFeature = (i, v) => {
-    const f = [...form.features]; f[i] = v
-    setForm({ ...form, features: f })
+  /* ✅ Feature handlers */
+  const updateFeatureText = (i, v) => {
+    const next = [...form.features]
+    next[i] = { ...next[i], text: v }
+    setForm({ ...form, features: next })
   }
-  const addFeature = () => setForm({ ...form, features: [...form.features, ''] })
-  const removeFeature = (i) =>
-    setForm({ ...form, features: form.features.filter((_, x) => x !== i) })
 
+  const toggleFeatureType = (i) => {
+    const next = [...form.features]
+    next[i] = {
+      ...next[i],
+      type: next[i].type === 'positive' ? 'negative' : 'positive',
+    }
+    setForm({ ...form, features: next })
+  }
+
+  const addFeature = () =>
+    setForm({
+      ...form,
+      features: [...form.features, { text: '', type: 'positive' }],
+    })
+
+  const removeFeature = (i) => {
+    const next = form.features.filter((_, x) => x !== i)
+    setForm({
+      ...form,
+      features: next.length ? next : [{ text: '', type: 'positive' }],
+    })
+  }
+
+  /* ✅ Save — terms add panniten */
   const save = async () => {
     if (!form.name.trim()) return notify.error('Name is required')
     if (!form.price || isNaN(form.price)) return notify.error('Valid price is required')
     setSaving(true)
     try {
+      const cleanFeatures = form.features
+        .filter((f) => f.text && f.text.trim().length > 0)
+        .map((f) => ({
+          text: f.text.trim(),
+          type: f.type === 'negative' ? 'negative' : 'positive',
+        }))
+
       const payload = {
         name: form.name,
         price: Number(form.price),
         description: form.description,
-        features: form.features.filter((f) => f.trim()),
+        terms: form.terms,
+        features: cleanFeatures,
         is_active: form.is_active,
       }
       if (editing) {
@@ -192,7 +249,7 @@ export default function ManagePricing() {
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {/* ---------- Desktop: table ---------- */}
+        {/* Desktop Table */}
         <div className="table-wrap mp-desktop" style={{ border: 'none', borderRadius: 0 }}>
           <table className="mp-table">
             <thead>
@@ -212,9 +269,7 @@ export default function ManagePricing() {
                   <td className="mp-td-price">
                     ₹{Number(p.price).toLocaleString('en-IN')}
                   </td>
-                  <td className="mp-td-desc">
-                    {p.description || '—'}
-                  </td>
+                  <td className="mp-td-desc">{p.description || '—'}</td>
                   <td className="mp-td-features">
                     {p.features?.length || 0} features
                   </td>
@@ -225,7 +280,6 @@ export default function ManagePricing() {
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div className="mp-actions">
-                      {/* ✅ EDIT — icon only */}
                       <button
                         className="mp-icon-btn mp-icon-edit"
                         onClick={() => openEdit(p)}
@@ -234,8 +288,6 @@ export default function ManagePricing() {
                         <IconEdit size={15} />
                         <span className="mp-tip">Edit</span>
                       </button>
-
-                      {/* ✅ ON/OFF — icon only */}
                       <button
                         className={`mp-icon-btn ${p.is_active ? 'mp-icon-off' : 'mp-icon-on'}`}
                         onClick={() => toggle(p)}
@@ -244,8 +296,6 @@ export default function ManagePricing() {
                         {p.is_active ? <IconX size={15} /> : <IconCheck size={15} />}
                         <span className="mp-tip">{p.is_active ? 'Deactivate' : 'Activate'}</span>
                       </button>
-
-                      {/* ✅ DELETE — icon only */}
                       <button
                         className="mp-icon-btn mp-icon-delete"
                         onClick={() => askDelete(p)}
@@ -262,7 +312,7 @@ export default function ManagePricing() {
           </table>
         </div>
 
-        {/* ---------- Mobile: cards ---------- */}
+        {/* Mobile Cards */}
         <div className="mp-mobile">
           {plans.map((p) => (
             <div key={p._id || p.id} className="mp-card">
@@ -272,19 +322,15 @@ export default function ManagePricing() {
                   {p.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
-
               <div className="mp-price">
                 ₹{Number(p.price).toLocaleString('en-IN')}
               </div>
-
               {p.description && <div className="mp-desc">{p.description}</div>}
-
               <div className="mp-features">
                 <span className="mp-features-count">
                   {p.features?.length || 0} feature{(p.features?.length || 0) !== 1 ? 's' : ''}
                 </span>
               </div>
-
               <div className="mp-card-actions">
                 <button
                   className="mp-icon-btn mp-icon-edit mp-icon-btn-flex"
@@ -313,9 +359,7 @@ export default function ManagePricing() {
         </div>
       </div>
 
-      {/* ============================================================
-          ADD / EDIT PLAN MODAL
-          ============================================================ */}
+      {/* ADD / EDIT MODAL */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -364,6 +408,7 @@ export default function ManagePricing() {
             />
           </div>
         </div>
+
         <div className="form-group">
           <label className="form-label" style={{ ...interStyle, fontWeight: 500 }}>
             Description
@@ -376,21 +421,71 @@ export default function ManagePricing() {
             style={interStyle}
           />
         </div>
+
+        {/* ✅ TERMS & CONDITIONS */}
+        <div className="form-group">
+          <label className="form-label" style={{ ...interStyle, fontWeight: 500 }}>
+            Terms &amp; Conditions{' '}
+            <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12.5 }}>
+              (optional)
+            </span>
+          </label>
+          <textarea
+            className="form-control"
+            rows={5}
+            placeholder={
+              'Enter each point on a new line. Example:\n' +
+              '• Refund policy applies within 7 days\n' +
+              '• No hidden charges\n' +
+              '• Free support for 1 year'
+            }
+            value={form.terms}
+            onChange={(e) => setForm({ ...form, terms: e.target.value })}
+            style={{ ...interStyle, lineHeight: 1.6, resize: 'vertical' }}
+          />
+          <p style={{ fontSize: 12, color: '#94a3b8', margin: '6px 0 0', lineHeight: 1.5 }}>
+            Ithu frontend la "Terms &amp; Conditions" link-ah show aagum. Empty-a vிட்டா link kanudha aagadhu.
+          </p>
+        </div>
+
+        {/* FEATURES */}
         <div className="form-group">
           <label className="form-label" style={{ ...interStyle, fontWeight: 500 }}>
             Features
           </label>
-          {form.features.map((f, i) => (
-            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <p className="mp-feat-hint">
+            Click the icon to switch between <strong>included</strong> (green ✓) and <strong>not included</strong> (red ✕).
+          </p>
+
+          {form.features.map((feature, i) => (
+            <div key={i} className="feature-row">
+              <button
+                type="button"
+                className={`feat-toggle ${feature.type === 'negative' ? 'is-negative' : 'is-positive'}`}
+                onClick={() => toggleFeatureType(i)}
+                title={
+                  feature.type === 'positive'
+                    ? 'Included — click to mark as NOT included'
+                    : 'Not included — click to mark as included'
+                }
+              >
+                {feature.type === 'positive' ? (
+                  <IconCheck size={13} />
+                ) : (
+                  <IconX size={13} />
+                )}
+              </button>
+
               <input
-                className="form-control"
-                value={f}
+                className="form-control feat-input"
+                value={feature.text}
                 placeholder={`Feature ${i + 1}`}
-                onChange={(e) => updateFeature(i, e.target.value)}
+                onChange={(e) => updateFeatureText(i, e.target.value)}
                 style={interStyle}
               />
+
               <button
-                className="btn btn-outline btn-sm"
+                className="btn btn-outline btn-sm feat-remove"
                 onClick={() => removeFeature(i)}
                 type="button"
                 style={{ ...interStyle, fontWeight: 500 }}
@@ -399,15 +494,17 @@ export default function ManagePricing() {
               </button>
             </div>
           ))}
+
           <button
             className="btn btn-ghost btn-sm"
             onClick={addFeature}
             type="button"
-            style={{ ...interStyle, fontWeight: 500 }}
+            style={{ ...interStyle, fontWeight: 500, marginTop: 4 }}
           >
             <IconPlus size={14} /> Add feature
           </button>
         </div>
+
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, ...interStyle, fontWeight: 500 }}>
           <input
             type="checkbox"
@@ -418,9 +515,7 @@ export default function ManagePricing() {
         </label>
       </Modal>
 
-      {/* ============================================================
-          DELETE CONFIRMATION MODAL
-          ============================================================ */}
+      {/* DELETE MODAL */}
       {deleteTarget && (
         <div className="mp-del-backdrop" onClick={cancelDelete}>
           <div className="mp-del-modal" onClick={(e) => e.stopPropagation()}>
@@ -454,8 +549,7 @@ export default function ManagePricing() {
 
             {deleteTarget.is_active && (
               <div className="mp-del-warn">
-                ⚠️ This plan is currently active and visible on the public site. Users with this
-                plan will keep their access, but the plan won't be available for new signups.
+                ⚠️ This plan is currently active and visible on the public site.
               </div>
             )}
 
@@ -485,11 +579,7 @@ export default function ManagePricing() {
           STYLES
           ============================================================ */}
       <style>{`
-        /* ============ TABLE ============ */
-        .mp-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
+        .mp-table { width: 100%; border-collapse: collapse; }
         .mp-table thead th {
           text-align: left;
           font-size: 11px;
@@ -509,19 +599,14 @@ export default function ManagePricing() {
           color: #0f172a;
           vertical-align: middle;
         }
-        .mp-table tbody tr:hover td {
-          background: #fafbff;
-        }
-        .mp-table tbody tr:last-child td {
-          border-bottom: none;
-        }
+        .mp-table tbody tr:hover td { background: #fafbff; }
+        .mp-table tbody tr:last-child td { border-bottom: none; }
 
         .mp-td-name { font-weight: 700; color: #0f172a; letter-spacing: -0.01em; }
         .mp-td-price { font-weight: 700; color: #0f172a; }
         .mp-td-desc { color: #475569; max-width: 260px; line-height: 1.5; }
         .mp-td-features { color: #64748b; font-size: 13px; }
 
-        /* ============ BADGE ============ */
         .mp-badge {
           display: inline-flex;
           align-items: center;
@@ -535,15 +620,11 @@ export default function ManagePricing() {
         .mp-badge.is-active { background: #d1fae5; color: #059669; }
         .mp-badge.is-inactive { background: #fee2e2; color: #dc2626; }
 
-        /* ============================================================
-           ICON-ONLY ACTION BUTTONS (with tooltips)
-           ============================================================ */
         .mp-actions {
           display: inline-flex;
           gap: 8px;
           justify-content: flex-end;
         }
-
         .mp-icon-btn {
           position: relative;
           display: inline-flex;
@@ -559,13 +640,7 @@ export default function ManagePricing() {
           padding: 0;
           font-family: inherit;
         }
-
-        /* EDIT — Neutral / blue */
-        .mp-icon-edit {
-          background: #f1f5f9;
-          border-color: #e2e8f0;
-          color: #475569;
-        }
+        .mp-icon-edit { background: #f1f5f9; border-color: #e2e8f0; color: #475569; }
         .mp-icon-edit:hover {
           background: #e0e7ff;
           border-color: #c7d2fe;
@@ -573,13 +648,7 @@ export default function ManagePricing() {
           transform: translateY(-1px);
           box-shadow: 0 6px 16px -6px rgba(79, 70, 229, 0.4);
         }
-
-        /* ON — Green */
-        .mp-icon-on {
-          background: #d1fae5;
-          border-color: #a7f3d0;
-          color: #059669;
-        }
+        .mp-icon-on { background: #d1fae5; border-color: #a7f3d0; color: #059669; }
         .mp-icon-on:hover {
           background: #a7f3d0;
           border-color: #6ee7b7;
@@ -587,13 +656,7 @@ export default function ManagePricing() {
           transform: translateY(-1px);
           box-shadow: 0 6px 16px -6px rgba(16, 185, 129, 0.5);
         }
-
-        /* OFF — Amber / muted */
-        .mp-icon-off {
-          background: #fef3c7;
-          border-color: #fde68a;
-          color: #b45309;
-        }
+        .mp-icon-off { background: #fef3c7; border-color: #fde68a; color: #b45309; }
         .mp-icon-off:hover {
           background: #fde68a;
           border-color: #fcd34d;
@@ -601,13 +664,7 @@ export default function ManagePricing() {
           transform: translateY(-1px);
           box-shadow: 0 6px 16px -6px rgba(245, 158, 11, 0.5);
         }
-
-        /* DELETE — Red */
-        .mp-icon-delete {
-          background: #fee2e2;
-          border-color: #fecaca;
-          color: #dc2626;
-        }
+        .mp-icon-delete { background: #fee2e2; border-color: #fecaca; color: #dc2626; }
         .mp-icon-delete:hover {
           background: #fecaca;
           border-color: #fca5a5;
@@ -615,12 +672,8 @@ export default function ManagePricing() {
           transform: translateY(-1px);
           box-shadow: 0 6px 16px -6px rgba(220, 38, 38, 0.5);
         }
+        .mp-icon-btn svg { flex-shrink: 0; }
 
-        .mp-icon-btn svg {
-          flex-shrink: 0;
-        }
-
-        /* ============ TOOLTIP ============ */
         .mp-tip {
           position: absolute;
           bottom: calc(100% + 8px);
@@ -654,9 +707,64 @@ export default function ManagePricing() {
           transform: translateX(-50%) translateY(0);
         }
 
-        /* ============ MOBILE CARDS ============ */
-        .mp-mobile { display: none; }
+        .mp-feat-hint {
+          font-size: 12.5px;
+          color: #64748b;
+          margin: -4px 0 10px;
+          line-height: 1.5;
+          font-weight: 400;
+        }
+        .mp-feat-hint strong { color: #0f172a; font-weight: 600; }
 
+        .feature-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .feat-toggle {
+          flex-shrink: 0;
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 1.5px solid transparent;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          font-family: inherit;
+          padding: 0;
+        }
+        .feat-toggle.is-positive {
+          background: rgba(16, 185, 129, 0.1);
+          border-color: rgba(16, 185, 129, 0.35);
+          color: #059669;
+        }
+        .feat-toggle.is-positive:hover {
+          background: rgba(16, 185, 129, 0.18);
+          border-color: rgba(16, 185, 129, 0.55);
+          transform: scale(1.05);
+        }
+        .feat-toggle.is-negative {
+          background: rgba(239, 68, 68, 0.1);
+          border-color: rgba(239, 68, 68, 0.35);
+          color: #dc2626;
+        }
+        .feat-toggle.is-negative:hover {
+          background: rgba(239, 68, 68, 0.18);
+          border-color: rgba(239, 68, 68, 0.55);
+          transform: scale(1.05);
+        }
+        .feat-input { flex: 1; min-width: 0; }
+        .feat-remove {
+          flex-shrink: 0;
+          width: 38px;
+          height: 38px;
+          padding: 0 !important;
+        }
+
+        .mp-mobile { display: none; }
         .mp-card {
           background: #fff;
           border: 1px solid #e5e7eb;
@@ -720,7 +828,6 @@ export default function ManagePricing() {
           height: 40px;
         }
 
-        /* ============ DELETE MODAL ============ */
         .mp-del-backdrop {
           position: fixed;
           inset: 0;
@@ -733,10 +840,7 @@ export default function ManagePricing() {
           padding: 20px;
           animation: mpFade 0.2s ease;
         }
-        @keyframes mpFade {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
+        @keyframes mpFade { from { opacity: 0; } to { opacity: 1; } }
         .mp-del-modal {
           background: #fff;
           border-radius: 18px;
@@ -791,9 +895,7 @@ export default function ManagePricing() {
           font-size: 13px;
           padding: 6px 0;
         }
-        .mp-del-info-row + .mp-del-info-row {
-          border-top: 1px dashed #e2e8f0;
-        }
+        .mp-del-info-row + .mp-del-info-row { border-top: 1px dashed #e2e8f0; }
         .mp-del-info-row span { color: #64748b; font-weight: 500; }
         .mp-del-info-row strong { color: #0f172a; font-weight: 700; }
         .mp-del-warn {
@@ -814,7 +916,6 @@ export default function ManagePricing() {
         }
         .mp-del-actions .btn { justify-content: center; }
 
-        /* ============ RESPONSIVE ============ */
         @media (max-width: 768px) {
           .mp-root .page-head {
             flex-direction: column;
@@ -823,7 +924,6 @@ export default function ManagePricing() {
           }
           .mp-root .page-title { font-size: 22px; }
           .mp-root .page-sub { font-size: 13px; }
-
           .mp-desktop { display: none !important; }
           .mp-mobile {
             display: flex;
@@ -831,16 +931,9 @@ export default function ManagePricing() {
             gap: 12px;
             padding: 12px;
           }
-
-          .mp-modal-grid {
-            grid-template-columns: 1fr !important;
-          }
-
+          .mp-modal-grid { grid-template-columns: 1fr !important; }
           .mp-del-modal { padding: 24px 20px 18px; border-radius: 16px; }
-          .mp-del-actions {
-            grid-template-columns: 1fr;
-            gap: 8px;
-          }
+          .mp-del-actions { grid-template-columns: 1fr; gap: 8px; }
           .mp-del-actions .btn { width: 100%; }
         }
 
@@ -849,6 +942,8 @@ export default function ManagePricing() {
           .mp-card-title { font-size: 15px; }
           .mp-price { font-size: 20px; }
           .mp-icon-btn-flex { height: 38px; }
+          .feat-toggle { width: 36px; height: 36px; }
+          .feat-remove { width: 36px; height: 36px; }
         }
       `}</style>
     </div>

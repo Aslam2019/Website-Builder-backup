@@ -1,0 +1,32 @@
+{
+  "business_name": "Bright Future Academy",
+  "institute_name": "Bright Future Academy",
+  "tagline": "Empowering Students for a Better Tomorrow",
+  "about": "We provide quality education with a focus on holistic development, modern facilities, and experienced faculty.",
+  "about_full": "Bright Future Academy is dedicated to nurturing young minds. With state-of-the-art labs, experienced mentors, and a curriculum designed for the future, we ensure every student reaches their full potential.",
+  "uploads_base": "https://cdn.yourdomain.com/uploads",
+  "phone": "+91 98765 43210",
+  "whatsapp": "919876543210",
+  "email": "admissions@brightfuture.edu",
+  "address": "123 Knowledge Park, Chennai",
+  "students_trained": 5000,
+  "placement_rate": 95,
+  "years_experience": 10,
+  "courses": [
+    { "name": "Science Stream", "description": "Physics, Chemistry, Maths, Biology", "duration": "2 Years", "level": "Intermediate", "price": "₹1,50,000" },
+    { "name": "Commerce Stream", "description": "Accountancy, Business Studies, Economics", "duration": "2 Years", "level": "Intermediate", "price": "₹1,20,000" }
+  ],
+  "mentors": [
+    {
+      "name": "Dr. Ramesh Kumar",
+      "role": "Principal",
+      "experience": "15+ years",
+      "expertise": "Computer Science",
+      "image": ""
+    }
+  ],
+  "gallery": [
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&w=800&q=80"
+  ]
+}

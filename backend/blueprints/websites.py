@@ -9,6 +9,10 @@ from services.website_service import (
 )
 from database.mongo import get_db
 
+# ✅ 1. Puthu Imports (Publish ku)
+from publish_service import trigger_publish
+from datetime import datetime
+
 websites_bp = Blueprint("websites", __name__)
 
 
@@ -45,22 +49,15 @@ def list_mine():
 
 # ============================================================
 # ✅ MY-WEBSITE — Latest published website (for QR code)
-# ⚠️  MUST be defined BEFORE /<website_id> route
 # ============================================================
 @websites_bp.route("/my-website", methods=["GET", "OPTIONS"])
 @token_required
 def get_my_website():
-    """
-    Returns the user's most recent PUBLISHED website.
-    Used by frontend to generate QR code from live_url.
-    Returns null if no published website exists.
-    """
     if request.method == "OPTIONS":
         return "", 200
 
     db = get_db()
 
-    # Find the latest published website for this user
     doc = db.websites.find_one(
         {
             "user_id": g.user_id,
@@ -69,7 +66,6 @@ def get_my_website():
         sort=[("published_at", -1), ("updated_at", -1)],
     )
 
-    # Fallback: if no "published" status found, try latest with live_url
     if not doc:
         doc = db.websites.find_one(
             {
@@ -83,6 +79,60 @@ def get_my_website():
         return success(None, "No published website found")
 
     return success(serialize_doc(doc))
+
+
+# ============================================================
+# 🚀 PUBLISH WEBSITE (SQS ku anuppa)
+# ============================================================
+@websites_bp.route("/<website_id>/publish", methods=["POST"])
+@token_required
+def publish_website(website_id):
+    """User clicks Publish -> Send to SQS -> Update DB."""
+    if not is_valid_object_id(website_id):
+        return error("Invalid website id", 400)
+
+    # 1. Website details DB la irundhu edukkrom
+    doc = get_website_by_id(website_id)
+    if not doc:
+        return error("Website not found", 404)
+
+    # Access check
+    if g.role != "super_admin" and str(doc["user_id"]) != g.user_id:
+        return error("Access denied", 403)
+
+    # 2. Frontend la irundhu HTML content ah edukkrom
+    data = request.get_json(silent=True) or {}
+    html_content = data.get("html_content")
+
+    if not html_content:
+        return error("HTML content is required to publish", 400)
+
+    # 3. SQS ku anuppa trigger_publish ah call panrom
+    result = trigger_publish(
+        website_id=website_id,
+        user_id=g.user_id,
+        template_name=doc.get("template_id", "unknown"),
+        html_content=html_content
+    )
+
+    # 4. Status ah DB la update panrom
+    if result.get("success"):
+        db = get_db()
+        db.websites.update_one(
+            {"_id": doc["_id"]},
+            {"$set": {
+                "status": "published",
+                "published_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        return success(
+            {"message_id": result.get("message_id")}, 
+            "Publishing started! Your site will be live soon.", 
+            200
+        )
+    else:
+        return error(result.get("error", "Publish failed due to server error"), 500)
 
 
 # ============================================================

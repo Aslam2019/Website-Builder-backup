@@ -7,6 +7,7 @@ import WhyChooseUs from '../../components/public/WhyChooseUs'
 import PricingSection from '../../components/public/PricingSection'
 import FAQSection from '../../components/public/FAQSection'
 import ContactSection from '../../components/public/ContactSection'
+import CategoriesSection from '../../components/public/CategoriesSection'
 
 export default function Home() {
   const location = useLocation()
@@ -34,6 +35,10 @@ export default function Home() {
       <AboutSection />
       <HowItWorks />
       <WhyChooseUs />
+
+      {/* ✅ Categories Section */}
+      <CategoriesSection />
+
       <PricingSection />
       <FAQSection />
       <ContactSection />

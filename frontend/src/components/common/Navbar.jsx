@@ -18,8 +18,8 @@ const getFullUrl = (url) => {
   return `${base}${url}`
 }
 
-/* ✅ Navbar height constant (used for scroll offset) */
-const NAVBAR_HEIGHT = 90
+/* ✅ Navbar height constant */
+const NAVBAR_HEIGHT = 76
 
 /* ============================================================
    SVG ICONS
@@ -58,13 +58,6 @@ const IconTag = ({ size = 17 }) => (
     <line x1="7" y1="7" x2="7.01" y2="7" />
   </svg>
 )
-const IconFAQ = ({ size = 17 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-    <line x1="12" y1="17" x2="12.01" y2="17" />
-  </svg>
-)
 const IconMail = ({ size = 17 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -84,14 +77,27 @@ const IconMenu = ({ size = 20 }) => (
     <line x1="3" y1="17" x2="21" y2="17" />
   </svg>
 )
+const IconGrid = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+)
+const IconChevronRight = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+)
 
 const LINKS = [
   { id: 'home', label: 'Home', Icon: IconHome },
   { id: 'about', label: 'About', Icon: IconInfo },
   { id: 'how-it-works', label: 'How It Works', Icon: IconSteps },
   { id: 'why-choose-us', label: 'Why Us', Icon: IconStar },
+  { id: 'categories', label: 'Categories', Icon: IconGrid },
   { id: 'pricing', label: 'Pricing', Icon: IconTag },
-  { id: 'faq', label: 'FAQ', Icon: IconFAQ },
   { id: 'contact', label: 'Contact', Icon: IconMail },
 ]
 
@@ -102,7 +108,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState('home')
-  const [site, setSite] = useState({ logo_url: '', site_name: 'WebsiteBuilder' })
+  const [site, setSite] = useState({ logo_url: '', site_name: '' })
   const { isAuthenticated, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -147,35 +153,34 @@ export default function Navbar() {
   }, [open])
 
   /* ============================================================
-     ✅ Smart scroll helper
+     ✅ Smart scroll helper — with manual fallback
      ============================================================ */
   const scrollToSection = (id) => {
     const el = document.getElementById(id)
     if (!el) return
 
-    const elementPosition = el.getBoundingClientRect().top + window.pageYOffset
-    const offsetPosition = elementPosition - NAVBAR_HEIGHT
+    // ✅ Manual scroll with proper offset (more reliable than scrollIntoView)
+    const elementTop = el.getBoundingClientRect().top + window.pageYOffset
+    const offset = NAVBAR_HEIGHT + 10  // Navbar + breathing room
 
     window.scrollTo({
-      top: offsetPosition,
+      top: elementTop - offset,
       behavior: 'smooth',
     })
+
     setActive(id)
   }
 
   /* ============================================================
      ✅ Handle incoming navigation from OTHER page
-     (e.g., user clicked "Pricing" from Login page)
      ============================================================ */
   useEffect(() => {
     if (location.pathname !== '/') return
     const targetId = location.state?.scrollTo
     if (!targetId) return
 
-    // Clear state so refresh doesn't re-trigger
     window.history.replaceState({}, document.title)
 
-    // Wait for DOM ready
     const t = setTimeout(() => {
       scrollToSection(targetId)
     }, 200)
@@ -184,7 +189,7 @@ export default function Navbar() {
   }, [location.pathname, location.state])
 
   /* ============================================================
-     ✅ Active section tracker (IntersectionObserver)
+     ✅ Active section tracker
      ============================================================ */
   useEffect(() => {
     if (location.pathname !== '/') return
@@ -198,7 +203,7 @@ export default function Navbar() {
       },
       {
         threshold: 0.3,
-        rootMargin: `-${NAVBAR_HEIGHT}px 0px -50% 0px`,
+        rootMargin: `-${NAVBAR_HEIGHT + 20}px 0px -50% 0px`,
       }
     )
 
@@ -216,24 +221,22 @@ export default function Navbar() {
   }, [location.pathname])
 
   /* ============================================================
-     ✅ Click handler — nav links
+     ✅ Click handler
      ============================================================ */
   const scrollTo = (e, id) => {
     e.preventDefault()
     setOpen(false)
 
-    // If NOT on home page → navigate first, then scroll
     if (location.pathname !== '/') {
       navigate('/', { state: { scrollTo: id } })
       return
     }
 
-    // On home page → scroll directly
     scrollToSection(id)
   }
 
   /* ============================================================
-     ✅ Brand click — scroll to top
+     ✅ Brand click
      ============================================================ */
   const handleBrandClick = (e) => {
     e.preventDefault()
@@ -372,9 +375,9 @@ export default function Navbar() {
             >
               <span className="drawer-link-icon"><Icon size={16} /></span>
               <span className="drawer-link-label">{label}</span>
-              <svg className="drawer-link-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <span className="drawer-link-chevron">
+                <IconChevronRight size={14} />
+              </span>
             </a>
           ))}
         </nav>
@@ -404,22 +407,32 @@ export default function Navbar() {
       </aside>
 
       <style>{`
-        /* ✅ GLOBAL — scroll margin for ALL sections */
+        /* ============================================================
+           ✅ GLOBAL — Body padding for fixed navbar
+           ============================================================ */
         html {
           scroll-behavior: smooth;
-          scroll-padding-top: ${NAVBAR_HEIGHT}px;
         }
+
+        /* ✅ Fixed navbar means body needs padding-top */
+        body {
+          padding-top: ${NAVBAR_HEIGHT}px;
+        }
+
+        /* ✅ Sections need scroll-margin for scrollIntoView */
         section[id] {
           scroll-margin-top: ${NAVBAR_HEIGHT}px;
         }
 
         /* ============================================================
-           NAVBAR
+           ✅ NAVBAR — FIXED (always visible at top)
            ============================================================ */
         .site-nav {
-          position: sticky;
+          position: fixed;
           top: 0;
-          z-index: 100;
+          left: 0;
+          right: 0;
+          z-index: 999;
           width: 100%;
           background: #ffffff;
           border-bottom: 1px solid #f1f5f9;
@@ -434,7 +447,7 @@ export default function Navbar() {
           max-width: 1280px;
           margin: 0 auto;
           padding: 0 32px;
-          height: 76px;
+          height: ${NAVBAR_HEIGHT}px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -624,7 +637,7 @@ export default function Navbar() {
           background: rgba(15, 23, 42, 0.5);
           backdrop-filter: blur(4px);
           -webkit-backdrop-filter: blur(4px);
-          z-index: 200;
+          z-index: 1000;
           animation: fadeIn 0.2s ease;
         }
         @keyframes fadeIn {
@@ -644,7 +657,7 @@ export default function Navbar() {
           height: 100vh;
           height: 100dvh;
           background: #ffffff;
-          z-index: 201;
+          z-index: 1001;
           transform: translateX(100%);
           transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
           display: none;
@@ -719,6 +732,8 @@ export default function Navbar() {
           color: #cbd5e1;
           transition: all 0.15s;
           flex-shrink: 0;
+          display: flex;
+          align-items: center;
         }
         .drawer-link:hover {
           background: #f8fafc;
@@ -802,6 +817,8 @@ export default function Navbar() {
           .hamburger { display: flex; }
           .mobile-drawer { display: flex; }
           .nav-inner { height: 68px; padding: 0 20px; }
+          body { padding-top: 68px; }
+          section[id] { scroll-margin-top: 68px; }
         }
 
         @media (max-width: 480px) {
@@ -810,6 +827,8 @@ export default function Navbar() {
           .brand-logo { height: 34px; max-width: 40px; }
           .brand-text { font-size: 16px; }
           .brand-wrap { gap: 10px; }
+          body { padding-top: 62px; }
+          section[id] { scroll-margin-top: 62px; }
         }
 
         @media (prefers-reduced-motion: reduce) {

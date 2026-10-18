@@ -90,23 +90,7 @@ def seed_pricing():
             "features": ["1 Website", "Basic Templates", "5 Pages", "Email Support", "1 GB Storage"],
             "is_active": True,
         },
-        {
-            "name": "Pro",
-            "price": 2999,
-            "description": "Best for growing businesses",
-            "features": ["3 Websites", "All Templates", "Unlimited Pages", "Priority Support",
-                          "10 GB Storage", "Custom Domain", "SEO Tools"],
-            "is_active": True,
-        },
-        {
-            "name": "Custom",
-            "price": 9999,
-            "description": "For enterprises with custom needs",
-            "features": ["Unlimited Websites", "All Templates + Custom", "Unlimited Pages",
-                          "24/7 Dedicated Support", "100 GB Storage", "Custom Domain",
-                          "SEO Tools", "Analytics Dashboard"],
-            "is_active": True,
-        },
+        # ✅ "Pro" block removed — admin manually "Pro Plan" add pannirukaar
     ]
     for p in plans:
         existing = db.pricing_plans.find_one({"name": p["name"]})

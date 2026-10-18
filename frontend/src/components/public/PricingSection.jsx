@@ -16,7 +16,6 @@ const heading = {
   letterSpacing: '-0.045em',
 }
 
-/* Card icons — SVG per plan index */
 const PlanIcons = [
   <svg key="0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
@@ -35,7 +34,60 @@ const PlanIcons = [
 
 const isCustomPlan = (plan) => {
   const name = String(plan?.name || '').toLowerCase()
-  return name.includes('custom') || name.includes('enterprise')
+  const slug = String(plan?.slug || '').toLowerCase()
+  return name.includes('custom') || name.includes('enterprise') ||
+         slug.includes('custom') || slug.includes('enterprise')
+}
+
+/* ✅ Robust feature normalize — handles multiple formats */
+const normalizeFeature = (f) => {
+  // Already object ✅
+  if (f && typeof f === 'object' && !Array.isArray(f)) {
+    return {
+      text: String(f.text || '').trim(),
+      type: f.type === 'negative' ? 'negative' : 'positive',
+    }
+  }
+
+  // String
+  if (typeof f === 'string') {
+    const str = f.trim()
+    if (!str) return { text: '', type: 'positive' }
+
+    // Try to parse stringified dict
+    if (str.startsWith('{') && str.endsWith('}')) {
+      // Method 1: JSON.parse (after replacing single quotes)
+      try {
+        const cleaned = str
+          .replace(/'/g, '"')             // single → double quotes
+          .replace(/\\"/g, '"')           // fix escaped quotes
+        const parsed = JSON.parse(cleaned)
+        if (parsed && parsed.text) {
+          return {
+            text: String(parsed.text).trim(),
+            type: parsed.type === 'negative' ? 'negative' : 'positive',
+          }
+        }
+      } catch {
+        // Ignore — try Method 2
+      }
+
+      // Method 2: Regex fallback (bulletproof)
+      const textMatch = str.match(/['"]text['"]\s*:\s*['"](.+?)['"]\s*[,}]/i)
+      const typeMatch = str.match(/['"]type['"]\s*:\s*['"](positive|negative)['"]/i)
+      if (textMatch) {
+        return {
+          text: String(textMatch[1]).trim(),
+          type: typeMatch && typeMatch[1] === 'negative' ? 'negative' : 'positive',
+        }
+      }
+    }
+
+    // Plain string
+    return { text: str, type: 'positive' }
+  }
+
+  return { text: '', type: 'positive' }
 }
 
 export default function PricingSection() {
@@ -43,6 +95,7 @@ export default function PricingSection() {
   const [loading, setLoading] = useState(true)
   const [visible, setVisible] = useState(false)
   const [customModalOpen, setCustomModalOpen] = useState(false)
+  const [termsPlan, setTermsPlan] = useState(null)   // ✅ NEW — shows terms modal
   const ref = useRef(null)
 
   useEffect(() => {
@@ -69,6 +122,21 @@ export default function PricingSection() {
     return () => io.disconnect()
   }, [])
 
+  // ✅ Close terms modal on Escape
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') setTermsPlan(null)
+    }
+    if (termsPlan) {
+      document.addEventListener('keydown', onKey)
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [termsPlan])
+
   const handleMove = (e, cardEl) => {
     if (!cardEl || window.innerWidth < 768) return
     const rect = cardEl.getBoundingClientRect()
@@ -90,7 +158,7 @@ export default function PricingSection() {
   }
 
   const activePlans = plans.filter((p) => p.is_active !== false)
-  const popularIndex = activePlans.length === 3 ? 1 : -1
+  const popularIndex = activePlans.length >= 3 ? 1 : -1
 
   return (
     <section
@@ -99,7 +167,6 @@ export default function PricingSection() {
       className={`pr ${visible ? 'is-visible' : ''}`}
       style={interStyle}
     >
-      {/* BACKGROUND */}
       <div className="pr-bg" aria-hidden="true">
         <div className="pr-bg-spotlight" />
         <div className="pr-bg-glow pr-bg-glow-1" />
@@ -108,7 +175,6 @@ export default function PricingSection() {
       </div>
 
       <div className="pr-wrap">
-        {/* HEADER */}
         <header className="pr-head">
           <span className="pr-eyebrow">
             <span className="pr-eyebrow-dot" />
@@ -123,7 +189,6 @@ export default function PricingSection() {
           </p>
         </header>
 
-        {/* PLANS */}
         {loading ? (
           <div className="pr-loading">Loading plans...</div>
         ) : activePlans.length === 0 ? (
@@ -133,6 +198,8 @@ export default function PricingSection() {
             {activePlans.map((plan, i) => {
               const isPopular = i === popularIndex
               const planIsCustom = isCustomPlan(plan)
+              const features = (plan.features || []).map(normalizeFeature)
+              const hasTerms = !planIsCustom && plan.terms && plan.terms.trim().length > 0
 
               return (
                 <div
@@ -156,7 +223,6 @@ export default function PricingSection() {
                   >
                     <span className="pr-card-shine" aria-hidden="true" />
 
-                    {/* HEAD */}
                     <div className="pr-card-head">
                       <div className="pr-card-name-row">
                         <h3 className="pr-card-name">{plan.name}</h3>
@@ -169,18 +235,29 @@ export default function PricingSection() {
                       </p>
                     </div>
 
-                    {/* FEATURES */}
                     <ul className="pr-card-features">
-                      {(plan.features || []).map((f, j) => (
-                        <li key={j}>
-                          <span className="pr-check" aria-hidden="true">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          </span>
-                          <span className="pr-feature-text">{f}</span>
-                        </li>
-                      ))}
+                      {features.map((f, j) => {
+                        const isNegative = f.type === 'negative'
+                        return (
+                          <li key={j} className={isNegative ? 'is-negative' : 'is-positive'}>
+                            <span className={`pr-check ${isNegative ? 'is-negative' : 'is-positive'}`} aria-hidden="true">
+                              {isNegative ? (
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+                                  <line x1="18" y1="6" x2="6" y2="18" />
+                                  <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                              ) : (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </span>
+                            <span className={`pr-feature-text ${isNegative ? 'is-negative' : ''}`}>
+                              {f.text}
+                            </span>
+                          </li>
+                        )
+                      })}
                     </ul>
 
                     {/* CTA */}
@@ -215,15 +292,11 @@ export default function PricingSection() {
                       </Link>
                     )}
 
-                    {/* ✅ PRICE — Custom plan hides price */}
+                    {/* PRICE */}
                     {planIsCustom ? (
                       <div className="pr-card-price-wrap pr-card-price-wrap-custom">
-                        <div className="pr-custom-price-text">
-                          Custom Quote
-                        </div>
-                        <div className="pr-custom-price-sub">
-                          Based on your requirements
-                        </div>
+                        <div className="pr-custom-price-text">Custom Quote</div>
+                        <div className="pr-custom-price-sub">Based on your requirements</div>
                       </div>
                     ) : (
                       <div className="pr-card-price-wrap">
@@ -237,6 +310,24 @@ export default function PricingSection() {
                         <div className="pr-card-billed">Lifetime access</div>
                       </div>
                     )}
+
+                    {/* ✅ TERMS & CONDITIONS — only Basic + Pro (not Custom) */}
+                    {hasTerms && (
+                      <button
+                        type="button"
+                        className="pr-terms-link"
+                        onClick={() => setTermsPlan(plan)}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                        <span>Terms &amp; Conditions</span>
+                      </button>
+                    )}
                   </article>
                 </div>
               )
@@ -244,7 +335,6 @@ export default function PricingSection() {
           </div>
         )}
 
-        {/* FOOT */}
         <div className="pr-foot">
           <p className="pr-foot-text">
             Start with a <strong>14-day free trial</strong>. No credit card required.
@@ -258,8 +348,64 @@ export default function PricingSection() {
       />
 
       {/* ============================================================
-          STYLES
+          ✅ TERMS & CONDITIONS MODAL
           ============================================================ */}
+      {termsPlan && (
+        <div className="pr-terms-backdrop" onClick={() => setTermsPlan(null)}>
+          <div className="pr-terms-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="pr-terms-head">
+              <div className="pr-terms-head-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              </div>
+              <div className="pr-terms-head-text">
+                <h3>Terms &amp; Conditions</h3>
+                <p>{termsPlan.name} Plan</p>
+              </div>
+              <button
+                type="button"
+                className="pr-terms-close"
+                onClick={() => setTermsPlan(null)}
+                aria-label="Close"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="pr-terms-body">
+              {String(termsPlan.terms || '')
+                .split('\n')
+                .map((line, idx) => {
+                  const trimmed = line.trim()
+                  if (!trimmed) return <div key={idx} className="pr-terms-spacer" />
+                  return (
+                    <p key={idx} className="pr-terms-line">
+                      {trimmed}
+                    </p>
+                  )
+                })}
+            </div>
+
+            <div className="pr-terms-foot">
+              <button
+                type="button"
+                className="pr-terms-btn"
+                onClick={() => setTermsPlan(null)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         /* ============ SECTION ============ */
         .pr {
@@ -270,7 +416,6 @@ export default function PricingSection() {
           isolation: isolate;
         }
 
-        /* ============ BACKGROUND ============ */
         .pr-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 
         .pr-bg-spotlight {
@@ -280,7 +425,6 @@ export default function PricingSection() {
             radial-gradient(ellipse 60% 40% at 50% 0%, rgba(168,85,247,0.18) 0%, transparent 70%),
             radial-gradient(ellipse 50% 50% at 50% 100%, rgba(59,130,246,0.12) 0%, transparent 70%);
         }
-
         .pr-bg-glow {
           position: absolute;
           border-radius: 50%;
@@ -296,18 +440,15 @@ export default function PricingSection() {
           background: radial-gradient(circle, rgba(99,102,241,0.28) 0%, transparent 70%);
           bottom: -15%; right: -8%;
         }
-
         .pr-bg-dots {
           position: absolute;
           inset: 0;
-          background-image:
-            radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+          background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
           background-size: 40px 40px;
           mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 30%, transparent 100%);
           -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 30%, transparent 100%);
           opacity: 0.4;
         }
-
         .pr-wrap {
           position: relative;
           z-index: 1;
@@ -315,8 +456,6 @@ export default function PricingSection() {
           margin: 0 auto;
           padding: 0 32px;
         }
-
-        /* ============ HEADER ============ */
         .pr-head {
           text-align: center;
           max-width: 720px;
@@ -349,7 +488,6 @@ export default function PricingSection() {
           0%, 100% { box-shadow: 0 0 8px rgba(168,85,247,0.9); }
           50%      { box-shadow: 0 0 18px rgba(168,85,247,0.4); }
         }
-
         .pr-title {
           font-size: 62px;
           line-height: 1.05;
@@ -362,7 +500,6 @@ export default function PricingSection() {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-
         .pr-sub {
           font-size: 16.5px;
           line-height: 1.7;
@@ -370,10 +507,6 @@ export default function PricingSection() {
           margin: 0 auto;
           max-width: 540px;
         }
-
-        /* ============================================================
-           GRID — All cards SAME HEIGHT
-           ============================================================ */
         .pr-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -383,7 +516,6 @@ export default function PricingSection() {
           margin: 0 auto;
           perspective: 1400px;
         }
-
         .pr-wrap-card {
           position: relative;
           opacity: 0;
@@ -398,7 +530,6 @@ export default function PricingSection() {
           opacity: 1;
           transform: translateY(0);
         }
-
         .pr-wrap-card.is-popular {
           transform: translateY(-16px);
           z-index: 3;
@@ -406,8 +537,6 @@ export default function PricingSection() {
         .pr.is-visible .pr-wrap-card.is-popular {
           transform: translateY(-16px);
         }
-
-        /* ============ POPULAR PILL ============ */
         .pr-popular-pill {
           position: absolute;
           top: -18px;
@@ -435,8 +564,6 @@ export default function PricingSection() {
           0%, 100% { transform: translateX(-50%) translateY(0); }
           50%      { transform: translateX(-50%) translateY(-4px); }
         }
-
-        /* ============ CARD ============ */
         .pr-card {
           position: relative;
           display: flex;
@@ -460,12 +587,10 @@ export default function PricingSection() {
           will-change: transform;
           overflow: hidden;
         }
-
         .pr-wrap-card.is-popular .pr-card {
           padding: 44px 32px 36px;
           border-radius: 26px;
         }
-
         .pr-card-shine {
           position: absolute;
           inset: 0;
@@ -480,7 +605,6 @@ export default function PricingSection() {
           z-index: 1;
         }
         .pr-card:hover .pr-card-shine { opacity: 1; }
-
         .pr-card:hover {
           border-color: rgba(168,85,247,0.35);
           box-shadow:
@@ -488,7 +612,6 @@ export default function PricingSection() {
             0 40px 80px -30px rgba(168,85,247,0.35),
             0 0 0 1px rgba(168,85,247,0.15);
         }
-
         .pr-wrap-card.is-popular .pr-card {
           background: linear-gradient(180deg, rgba(139,92,246,0.18) 0%, rgba(139,92,246,0.05) 100%);
           border: 1px solid rgba(168,85,247,0.45);
@@ -504,7 +627,6 @@ export default function PricingSection() {
             0 50px 110px -30px rgba(168,85,247,0.6),
             0 0 80px -20px rgba(168,85,247,0.5);
         }
-
         .pr-wrap-card.is-popular .pr-card::before {
           content: '';
           position: absolute;
@@ -515,8 +637,6 @@ export default function PricingSection() {
           background: linear-gradient(90deg, transparent, #a855f7, transparent);
           filter: blur(1px);
         }
-
-        /* ============ CARD HEAD ============ */
         .pr-card-head {
           position: relative;
           z-index: 2;
@@ -537,9 +657,7 @@ export default function PricingSection() {
           letter-spacing: -0.025em;
           line-height: 1.15;
         }
-        .pr-wrap-card.is-popular .pr-card-name {
-          font-size: 30px;
-        }
+        .pr-wrap-card.is-popular .pr-card-name { font-size: 30px; }
         .pr-card-icon {
           display: flex;
           align-items: center;
@@ -564,7 +682,6 @@ export default function PricingSection() {
         .pr-card:hover .pr-card-icon {
           transform: scale(1.06) rotate(-3deg);
         }
-
         .pr-card-desc {
           font-size: 13.5px;
           line-height: 1.55;
@@ -576,8 +693,6 @@ export default function PricingSection() {
           font-size: 14.5px;
           min-height: 46px;
         }
-
-        /* ============ FEATURES ============ */
         .pr-card-features {
           position: relative;
           z-index: 2;
@@ -596,9 +711,7 @@ export default function PricingSection() {
           line-height: 1.5;
           color: #cbd5e1;
         }
-        .pr-wrap-card.is-popular .pr-card-features li {
-          font-size: 14.5px;
-        }
+        .pr-wrap-card.is-popular .pr-card-features li { font-size: 14.5px; }
         .pr-check {
           display: inline-flex;
           align-items: center;
@@ -606,25 +719,34 @@ export default function PricingSection() {
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          background: rgba(99,102,241,0.15);
-          color: #818cf8;
           flex-shrink: 0;
           margin-top: 2px;
           transition: all 0.25s ease;
         }
-        .pr-wrap-card.is-popular .pr-check {
+        .pr-check.is-positive {
+          background: rgba(99,102,241,0.15);
+          color: #818cf8;
+        }
+        .pr-wrap-card.is-popular .pr-check.is-positive {
           background: rgba(168,85,247,0.22);
           color: #c4b5fd;
         }
-        .pr-card:hover .pr-check {
-          transform: scale(1.1);
+        .pr-check.is-negative {
+          background: rgba(239, 68, 68, 0.14);
+          color: #f87171;
         }
+        .pr-wrap-card.is-popular .pr-check.is-negative {
+          background: rgba(239, 68, 68, 0.2);
+          color: #fca5a5;
+        }
+        .pr-card:hover .pr-check { transform: scale(1.1); }
         .pr-feature-text {
           flex: 1;
           min-width: 0;
         }
-
-        /* ============ CTA ============ */
+        .pr-feature-text.is-negative {
+          color: #94a3b8;
+        }
         .pr-card-cta {
           position: relative;
           z-index: 2;
@@ -659,7 +781,6 @@ export default function PricingSection() {
           color: #fff;
           transform: translateY(-1px);
         }
-
         .pr-card-cta.is-primary {
           background: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
           color: #fff;
@@ -678,7 +799,6 @@ export default function PricingSection() {
         .pr-card-cta.is-primary svg { transition: transform 0.2s; }
         .pr-card-cta.is-primary:hover svg { transform: translateX(3px); }
 
-        /* ============ PRICE ============ */
         .pr-card-price-wrap {
           position: relative;
           z-index: 2;
@@ -709,9 +829,7 @@ export default function PricingSection() {
           line-height: 1;
           text-shadow: 0 2px 20px rgba(168,85,247,0.3);
         }
-        .pr-wrap-card.is-popular .pr-card-amount {
-          font-size: 50px;
-        }
+        .pr-wrap-card.is-popular .pr-card-amount { font-size: 50px; }
         .pr-card-unit {
           font-size: 13px;
           font-weight: 500;
@@ -726,8 +844,203 @@ export default function PricingSection() {
         }
 
         /* ============================================================
-           ✅ CUSTOM PLAN — Custom Quote instead of price
+           ✅ TERMS & CONDITIONS — small link
            ============================================================ */
+        .pr-terms-link {
+          position: relative;
+          z-index: 2;
+          margin-top: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 6px 10px;
+          font-size: 11.5px;
+          font-weight: 600;
+          color: #94a3b8;
+          background: transparent;
+          border: 1px dashed rgba(148, 163, 184, 0.25);
+          border-radius: 8px;
+          cursor: pointer;
+          font-family: inherit;
+          letter-spacing: 0.02em;
+          transition: all 0.2s ease;
+          align-self: center;
+        }
+        .pr-terms-link:hover {
+          color: #c4b5fd;
+          border-color: rgba(168, 85, 247, 0.5);
+          background: rgba(168, 85, 247, 0.06);
+        }
+        .pr-terms-link svg {
+          flex-shrink: 0;
+          transition: transform 0.2s ease;
+        }
+        .pr-terms-link:hover svg {
+          transform: scale(1.1);
+        }
+
+        /* ============================================================
+           ✅ TERMS MODAL
+           ============================================================ */
+        .pr-terms-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
+          background: rgba(7, 5, 26, 0.75);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          animation: prTermsFade 0.2s ease;
+        }
+        @keyframes prTermsFade {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        .pr-terms-modal {
+          background: linear-gradient(180deg, #13112b 0%, #0b0a1f 100%);
+          border: 1px solid rgba(168, 85, 247, 0.35);
+          border-radius: 20px;
+          width: 100%;
+          max-width: 520px;
+          max-height: 85vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow:
+            0 40px 100px -20px rgba(0, 0, 0, 0.7),
+            0 0 80px -20px rgba(168, 85, 247, 0.5);
+          animation: prTermsIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          overflow: hidden;
+        }
+        @keyframes prTermsIn {
+          from { opacity: 0; transform: translateY(16px) scale(0.96); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .pr-terms-head {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 22px 22px 18px;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          flex-shrink: 0;
+        }
+        .pr-terms-head-icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, rgba(168,85,247,0.25), rgba(99,102,241,0.18));
+          border: 1px solid rgba(168,85,247,0.35);
+          color: #c4b5fd;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .pr-terms-head-text {
+          flex: 1;
+          min-width: 0;
+        }
+        .pr-terms-head-text h3 {
+          font-size: 16px;
+          font-weight: 800;
+          color: #fff;
+          margin: 0 0 3px;
+          letter-spacing: -0.02em;
+        }
+        .pr-terms-head-text p {
+          font-size: 12.5px;
+          color: #94a3b8;
+          margin: 0;
+          font-weight: 500;
+        }
+        .pr-terms-close {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          color: #94a3b8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          flex-shrink: 0;
+        }
+        .pr-terms-close:hover {
+          background: rgba(239, 68, 68, 0.15);
+          border-color: rgba(239, 68, 68, 0.35);
+          color: #fca5a5;
+        }
+
+        .pr-terms-body {
+          padding: 20px 24px 24px;
+          overflow-y: auto;
+          flex: 1;
+          color: #cbd5e1;
+          font-size: 13.5px;
+          line-height: 1.7;
+        }
+        .pr-terms-body::-webkit-scrollbar { width: 6px; }
+        .pr-terms-body::-webkit-scrollbar-track { background: transparent; }
+        .pr-terms-body::-webkit-scrollbar-thumb {
+          background: rgba(168, 85, 247, 0.3);
+          border-radius: 3px;
+        }
+        .pr-terms-body::-webkit-scrollbar-thumb:hover {
+          background: rgba(168, 85, 247, 0.5);
+        }
+
+        .pr-terms-line {
+          margin: 0 0 8px;
+          padding-left: 16px;
+          position: relative;
+          color: #cbd5e1;
+        }
+        .pr-terms-line::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 10px;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #a855f7, #6366f1);
+          box-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+        }
+        .pr-terms-spacer { height: 8px; }
+
+        .pr-terms-foot {
+          padding: 16px 22px;
+          border-top: 1px solid rgba(255,255,255,0.06);
+          display: flex;
+          justify-content: flex-end;
+          flex-shrink: 0;
+        }
+        .pr-terms-btn {
+          padding: 10px 26px;
+          background: linear-gradient(135deg, #a855f7, #6366f1);
+          color: #fff;
+          border: none;
+          border-radius: 10px;
+          font-size: 13.5px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          letter-spacing: -0.01em;
+          transition: all 0.2s ease;
+          box-shadow: 0 8px 20px -8px rgba(168, 85, 247, 0.7);
+        }
+        .pr-terms-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 28px -8px rgba(168, 85, 247, 0.85);
+        }
+
+        /* ============ CUSTOM PLAN ============ */
         .pr-card-price-wrap-custom {
           display: flex;
           flex-direction: column;
@@ -750,13 +1063,9 @@ export default function PricingSection() {
           font-size: 12.5px;
           color: #94a3b8;
           font-weight: 500;
-          letter-spacing: 0.01em;
         }
-        .pr-wrap-card.is-popular .pr-custom-price-text {
-          font-size: 30px;
-        }
+        .pr-wrap-card.is-popular .pr-custom-price-text { font-size: 30px; }
 
-        /* ============ FOOT ============ */
         .pr-foot {
           text-align: center;
           margin-top: 96px;
@@ -771,7 +1080,6 @@ export default function PricingSection() {
           color: #c4b5fd;
           font-weight: 700;
         }
-
         .pr-loading {
           text-align: center;
           padding: 60px 0;
@@ -779,9 +1087,7 @@ export default function PricingSection() {
           font-size: 15px;
         }
 
-        /* ============================================================
-           TABLET (≤1024px)
-           ============================================================ */
+        /* ============ RESPONSIVE ============ */
         @media (max-width: 1024px) {
           .pr { padding: 96px 0; }
           .pr-title { font-size: 48px; }
@@ -794,52 +1100,38 @@ export default function PricingSection() {
           .pr-card-amount { font-size: 36px; }
           .pr-wrap-card.is-popular .pr-card-amount { font-size: 40px; }
         }
-
-        /* ============================================================
-           MOBILE (≤768px)
-           ============================================================ */
         @media (max-width: 768px) {
           .pr { padding: 72px 0 80px; }
           .pr-wrap { padding: 0 20px; }
           .pr-head { margin-bottom: 56px; }
           .pr-title { font-size: 34px; line-height: 1.1; }
           .pr-sub { font-size: 14.5px; }
-
           .pr-grid {
             grid-template-columns: 1fr;
             gap: 20px;
             max-width: 420px;
             perspective: none;
           }
-
           .pr-wrap-card.is-popular,
           .pr.is-visible .pr-wrap-card.is-popular {
             transform: translateY(0);
             margin-top: 8px;
             margin-bottom: 8px;
           }
-
           .pr-wrap-card.is-popular .pr-card,
           .pr-card {
             padding: 30px 22px 26px;
             border-radius: 20px;
             transform: none !important;
           }
-
-          .pr-wrap-card.is-popular .pr-card {
-            padding: 32px 22px 28px;
-          }
-
+          .pr-wrap-card.is-popular .pr-card { padding: 32px 22px 28px; }
           .pr-popular-pill {
             top: -14px;
             padding: 7px 16px;
             font-size: 11px;
           }
-
           .pr-card-name,
-          .pr-wrap-card.is-popular .pr-card-name {
-            font-size: 21px;
-          }
+          .pr-wrap-card.is-popular .pr-card-name { font-size: 21px; }
           .pr-card-icon,
           .pr-wrap-card.is-popular .pr-card-icon {
             width: 34px;
@@ -852,13 +1144,9 @@ export default function PricingSection() {
             min-height: auto;
             margin-bottom: 6px;
           }
-
           .pr-card-features { gap: 11px; margin-bottom: 22px; }
           .pr-card-features li,
-          .pr-wrap-card.is-popular .pr-card-features li {
-            font-size: 13.5px;
-          }
-
+          .pr-wrap-card.is-popular .pr-card-features li { font-size: 13.5px; }
           .pr-card-cta,
           .pr-wrap-card.is-popular .pr-card-cta {
             padding: 12px 18px;
@@ -866,52 +1154,39 @@ export default function PricingSection() {
             margin-bottom: 22px;
             border-radius: 13px;
           }
-
           .pr-card-amount,
-          .pr-wrap-card.is-popular .pr-card-amount {
-            font-size: 36px;
-          }
+          .pr-wrap-card.is-popular .pr-card-amount { font-size: 36px; }
           .pr-card-currency,
-          .pr-wrap-card.is-popular .pr-card-currency {
-            font-size: 19px;
-          }
+          .pr-wrap-card.is-popular .pr-card-currency { font-size: 19px; }
           .pr-card-unit { font-size: 12px; }
           .pr-card-billed { font-size: 11.5px; }
-
+          .pr-terms-link { font-size: 11px; padding: 5px 9px; }
           .pr-custom-price-text { font-size: 22px; }
           .pr-wrap-card.is-popular .pr-custom-price-text { font-size: 24px; }
           .pr-card-price-wrap-custom { min-height: 76px; }
-
           .pr-foot { margin-top: 48px; }
           .pr-foot-text { font-size: 13.5px; }
+          .pr-terms-modal { max-width: 100%; max-height: 90vh; }
+          .pr-terms-body { font-size: 13px; padding: 16px 18px 20px; }
         }
-
         @media (max-width: 380px) {
           .pr-title { font-size: 28px; }
           .pr-card,
-          .pr-wrap-card.is-popular .pr-card {
-            padding: 26px 18px 22px;
-          }
+          .pr-wrap-card.is-popular .pr-card { padding: 26px 18px 22px; }
           .pr-card-name,
-          .pr-wrap-card.is-popular .pr-card-name {
-            font-size: 19px;
-          }
+          .pr-wrap-card.is-popular .pr-card-name { font-size: 19px; }
           .pr-card-amount,
-          .pr-wrap-card.is-popular .pr-card-amount {
-            font-size: 32px;
-          }
+          .pr-wrap-card.is-popular .pr-card-amount { font-size: 32px; }
           .pr-card-features li,
-          .pr-wrap-card.is-popular .pr-card-features li {
-            font-size: 13px;
-          }
+          .pr-wrap-card.is-popular .pr-card-features li { font-size: 13px; }
         }
 
-        /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
           .pr-card,
           .pr-card-shine,
           .pr-popular-pill,
-          .pr-eyebrow-dot {
+          .pr-eyebrow-dot,
+          .pr-terms-modal {
             animation: none !important;
             transition: none !important;
           }
@@ -921,9 +1196,7 @@ export default function PricingSection() {
             transform: none !important;
           }
           .pr-card,
-          .pr-wrap-card.is-popular .pr-card {
-            transform: none !important;
-          }
+          .pr-wrap-card.is-popular .pr-card { transform: none !important; }
         }
       `}</style>
     </section>
