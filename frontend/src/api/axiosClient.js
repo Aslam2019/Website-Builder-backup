@@ -6,7 +6,7 @@ import axios from 'axios'
 
 // ✅ Vite env variable — .env la VITE_API_URL set pannunga
 const API_BASE =
-  import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+  import.meta.env.VITE_API_BASE_URL 
 
 const axiosClient = axios.create({
   baseURL: API_BASE,
