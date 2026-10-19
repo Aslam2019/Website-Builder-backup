@@ -15,7 +15,7 @@ const heading = {
 }
 
 // Use same base URL as your axiosClient
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+const API_BASE = import.meta.env.VITE_API_URL || 'https://98.130.23.135'
 
 export default function Terms() {
   const { slug } = useParams()
