@@ -6,7 +6,7 @@ import axiosClient from '../../api/axiosClient'
 const getFullUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('data:')) return url
-  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'
+  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://98.130.23.135'
   return `${base}${url}`
 }
 
