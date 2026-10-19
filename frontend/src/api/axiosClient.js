@@ -6,7 +6,7 @@ import axios from 'axios'
 
 // ✅ Vite env variable — .env la VITE_API_URL set pannunga
 const API_BASE =
-  import.meta.env.VITE_API_BASE_URL 
+  "http://18.61.44.164/api" 
 
 const axiosClient = axios.create({
   baseURL: API_BASE,
