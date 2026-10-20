@@ -103,7 +103,7 @@ def list_payments(user_id=None):
     q = {}
     if user_id:
         q["user_id"] = ObjectId(user_id)
-    return list(db.payments.find(q).sort("created_at", -1))
+    return list(db.payments.find().sort("created_at", -1))
 
 
 def get_payment(payment_id):
