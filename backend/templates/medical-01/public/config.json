@@ -1,0 +1,17 @@
+{
+  "business_name": "Sunrise Multispeciality Clinic",
+  "clinic_name": "Sunrise Multispeciality Clinic",
+  "tagline": "Compassionate Care. Advanced Medicine.",
+  "emergency_phone": "+91 99999 88888", 
+  "about": "We provide comprehensive healthcare services...",
+  "phone": "+91 98765 43210",
+  "whatsapp": "919876543210",
+  "address": "123 Medical Avenue, Chennai",
+  "social_instagram": "https://instagram.com/sunriseclinic",
+  "social_facebook": "https://facebook.com/sunriseclinic",
+  "services": [
+    { "name": "General Checkup", "price": "₹500" }
+  ],
+  "doctors": [],
+  "gallery": []
+}
