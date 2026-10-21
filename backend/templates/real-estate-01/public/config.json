@@ -1,0 +1,51 @@
+{
+  "business_name": "Premium Estates",
+  "company_name": "Premium Estates",
+  "tagline": "Find Your Dream Property With Confidence",
+  "about": "We are a leading real estate agency specializing in luxury homes, apartments, and commercial properties.",
+  "uploads_base": "https://cdn.yourdomain.com/uploads",
+  "phone": "+91 98765 43210",
+  "whatsapp": "919876543210",
+  "email": "hello@premiumestates.com",
+  "address": "123 Business Avenue, Chennai",
+  "properties": [
+    { 
+      "title": "Luxury Villa", 
+      "name": "Luxury Villa",
+      "price": "₹2,50,00,000", 
+      "location": "ECR, Chennai", 
+      "type": "Villa", 
+      "beds": "4 BHK", 
+      "area": "3500 sqft",
+      "status": "Ready to move",
+      "image": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80" 
+    },
+    { 
+      "title": "Modern Apartment", 
+      "name": "Modern Apartment",
+      "price": "₹85,00,000", 
+      "location": "OMR, Chennai", 
+      "type": "Apartment", 
+      "beds": "3 BHK", 
+      "area": "1800 sqft",
+      "status": "Under construction",
+      "image": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80" 
+    },
+    { 
+      "title": "Commercial Space", 
+      "name": "Commercial Space",
+      "price": "₹1,20,00,000", 
+      "location": "Anna Nagar, Chennai", 
+      "type": "Commercial", 
+      "beds": "N/A", 
+      "area": "2500 sqft",
+      "status": "Ready to move",
+      "image": "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80" 
+    }
+  ],
+  "features": [
+    { "icon": "Shield Check", "title": "Trusted & Verified", "description": "All properties are legally verified with clear titles." },
+    { "icon": "Users", "title": "Expert Team", "description": "Experienced agents who understand your needs." },
+    { "icon": "Star", "title": "Premium Listings", "description": "Handpicked premium properties in prime locations." }
+  ]
+}

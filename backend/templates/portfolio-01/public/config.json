@@ -1,0 +1,57 @@
+{
+  "full_name": "John Doe",
+  "title": "Product Designer & Developer",
+  "tagline": "Designing digital experiences that matter.",
+  "about": "I'm a product designer and frontend developer based in Chennai. I love building clean, user-friendly interfaces.",
+  "location": "Chennai, India",
+  "phone": "+91 98765 43210",
+  "whatsapp": "919876543210",
+  "email": "hello@johndoe.com",
+  "years_experience": 5,
+  "uploads_base": "https://cdn.yourdomain.com/uploads",
+  "social_linkedin": "https://linkedin.com/in/johndoe",
+  "social_github": "https://github.com/johndoe",
+  "social_twitter": "https://twitter.com/johndoe",
+  "skills": [
+    {
+      "category": "Frontend",
+      "items": ["React", "JavaScript", "HTML", "CSS", "Tailwind"]
+    },
+    {
+      "category": "Backend",
+      "items": ["Node.js", "Python", "MongoDB"]
+    },
+    {
+      "category": "Design",
+      "items": ["Figma", "UI/UX", "Prototyping"]
+    }
+  ],
+  "experience": [
+    {
+      "role": "Senior Product Designer",
+      "company": "TechCorp",
+      "from_period": "2021",
+      "to_period": "Present",
+      "description": "Leading design for core products."
+    },
+    {
+      "role": "Frontend Developer",
+      "company": "WebStudio",
+      "from_period": "2019",
+      "to_period": "2021",
+      "description": "Built responsive web apps using React."
+    }
+  ],
+  "projects": [
+    {
+      "name": "E-commerce Dashboard",
+      "description": "Analytics dashboard for online store.",
+      "url": "https://example.com"
+    },
+    {
+      "name": "Portfolio Website",
+      "description": "Personal portfolio built with React."
+    }
+  ],
+  "resume": ""
+}

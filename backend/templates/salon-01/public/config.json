@@ -1,0 +1,26 @@
+{
+  "business_name": "Luxe Glow Salon",
+  "tagline": "Where Beauty Meets Elegance",
+  "description": "Premium salon and spa services in Chennai",
+  "about": "We are a luxury salon and spa offering premium beauty services.",
+  "about_full": "At Luxe Glow Salon, we believe every visit should feel like a retreat. Our expert team uses only top-tier products to help you look and feel your best.",
+  "uploads_base": "https://cdn.yourdomain.com/uploads",
+  "phone": "+91 98765 43210",
+  "whatsapp": "919876543210",
+  "email": "hello@luxeglow.com",
+  "address": "123 Anna Salai, Chennai, Tamil Nadu 600002",
+  "working_hours": "Mon–Sun · 10:00 AM – 8:00 PM",
+  "years_experience": 8,
+  "happy_clients": 5000,
+  "social_instagram": "https://instagram.com/luxeglow",
+  "social_facebook": "https://facebook.com/luxeglow",
+  "services": [
+    { "name": "Hair Cut & Styling", "price": "₹500", "duration": "30 min", "category": "hair", "description": "Professional cut with styling" },
+    { "name": "Hair Spa", "price": "₹2000", "duration": "60 min", "category": "hair", "description": "Deep conditioning treatment" },
+    { "name": "Facial", "price": "₹1500", "duration": "45 min", "category": "skin", "description": "Rejuvenating facial" },
+    { "name": "Aroma Massage", "price": "₹2500", "duration": "90 min", "category": "spa", "description": "Full body relaxation" },
+    { "name": "Manicure", "price": "₹800", "duration": "30 min", "category": "nails", "description": "Nail care" },
+    { "name": "Pedicure", "price": "₹1000", "duration": "45 min", "category": "nails", "description": "Foot care" }
+  ],
+  "gallery": []
+}
