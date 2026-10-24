@@ -106,10 +106,9 @@ export default function MyWebsite() {
               </Link>
             )}
             {isPublished && (
-              <Link to={`/site/${website._id || website.id}`} target="_blank"
-                className="btn btn-primary btn-block">
-                <IconWebsite size={16} /> Open Live Site
-              </Link>
+              <a href={website.live_url || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-block">
+                 <IconWebsite size={16} /> Open Live Site
+              </a>
             )}
           </div>
         </div>
