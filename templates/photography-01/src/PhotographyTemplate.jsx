@@ -3,6 +3,9 @@ import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
 import './photography.css'
+export default function PhotographyTemplate({ data: propData, website }) {
+  // ✅ Ithu dhaan main fix
+  const data = window.__SITE_DATA__ || propData || {};
 
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
