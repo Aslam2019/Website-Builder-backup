@@ -1,20 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PhotographyTemplate from './PhotographyTemplate'
 
 export default function App() {
   const [config, setConfig] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
-    fetch('./config.json')
-      .then((r) => { if (!r.ok) throw new Error('Config not found'); return r.json() })
-      .then((data) => { setConfig(data); setLoading(false) })
-      .catch((err) => { console.error(err); setError(err.message); setLoading(false) })
+    // ✅ 1. Jinja2 la irundhu vara data ah direct ah use pandrom
+    if (typeof window !== 'undefined' && window.__SITE_DATA__) {
+      setConfig(window.__SITE_DATA__)
+    } else {
+      // ✅ 2. Local development ku mattum config.json fetch pandrom
+      fetch('/config.json')
+        .then(res => res.json())
+        .then(data => setConfig(data))
+        .catch(err => console.error("Config load failed:", err))
+    }
   }, [])
 
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0a0a0a', color: '#fff' }}>Loading...</div>
-  if (error || !config) return <div style={{ padding: 40, textAlign: 'center', color: '#fff' }}><h2>Error</h2><p>{error}</p></div>
+  if (!config) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: 'white', background: '#111' }}>
+        Loading...
+      </div>
+    )
+  }
 
   return <PhotographyTemplate data={config} />
 }
