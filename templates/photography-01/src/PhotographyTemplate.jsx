@@ -122,9 +122,12 @@ function AnimatedCounter({ value, duration = 1800 }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
-export default function PhotographyTemplate({ data, website }) {
-  // ✅ Get uploads base from config
-  const uploadsBase = getUploadsBase(data)
+export default function PhotographyTemplate({ data: propData, website }) {
+  // ✅ 1. Window data or Prop data ah edukkanum
+  const data = window.__SITE_DATA__ || propData || {};
+  
+  // ✅ 2. Uploads Base ah correct ah set pannanum
+  const uploadsBase = window.__UPLOADS_BASE__ || getUploadsBase(data) || "https://d24e11dzjriy3b.cloudfront.net";
 
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
