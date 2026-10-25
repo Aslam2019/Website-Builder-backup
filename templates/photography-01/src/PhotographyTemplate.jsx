@@ -828,6 +828,7 @@ ${message ? `\nMessage: ${message}` : ''}`
           <img src={lightbox} alt="Preview" className="ph-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
       )}
+      }
     </div>
   )
 }
