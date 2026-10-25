@@ -1,3 +1,4 @@
+import time
 import boto3
 import json
 import os
@@ -17,7 +18,7 @@ sqs = boto3.client(
     region_name=AWS_REGION
 )
 
-def trigger_publish(website_id, user_id, template_name, html_content):
+def trigger_publish(website_id, user_id, username, template_name, html_content):
     """
     Ithu SQS queue ku message anuppum.
     Lambda function ithu receive panni S3 la upload pannum.
@@ -25,6 +26,7 @@ def trigger_publish(website_id, user_id, template_name, html_content):
     payload = {
         "website_id": website_id,
         "user_id": user_id,
+        "username": username,
         "template_name": template_name,
         "html_content": html_content, # User oda final HTML string
         "action": "publish_site"
@@ -41,3 +43,16 @@ def trigger_publish(website_id, user_id, template_name, html_content):
     except ClientError as e:
         print(f"❌ SQS Error: {e}")
         return {"success": False, "error": str(e)}
+        # ✅ CloudFront Auto-Invalidate
+    try:
+        cf = boto3.client('cloudfront', region_name='us-east-1')
+        cf.create_invalidation(
+            DistributionId='E1HOJ6B5DZ4I34', # Unga CloudFront ID
+            InvalidationBatch={
+                'Paths': {'Quantity': 1, 'Items': [f'/{username}/*']},
+                'CallerReference': str(time.time())
+            }
+        )
+        print(f"✅ CloudFront Invalidated for /{username}/*")
+    except Exception as e:
+        print(f"⚠️ CloudFront Invalidation failed: {e}")
