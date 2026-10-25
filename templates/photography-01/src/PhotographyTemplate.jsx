@@ -7,6 +7,8 @@ export default function PhotographyTemplate({ data: propData, website }) {
   // ✅ Ithu dhaan main fix
   const data = window.__SITE_DATA__ || propData || {};
 
+  const [scrolled, setScrolled] = useState(false)
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=1920&q=80',
@@ -125,7 +127,7 @@ function AnimatedCounter({ value, duration = 1800 }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
-export default function PhotographyTemplate({ data: propData, website }) {
+
   // ✅ 1. Window data or Prop data ah edukkanum
   const data = window.__SITE_DATA__ || propData || {};
   
