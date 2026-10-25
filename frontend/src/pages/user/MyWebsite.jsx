@@ -106,8 +106,13 @@ export default function MyWebsite() {
               </Link>
             )}
             {isPublished && (
-              <a href={website.live_url || "#"} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-block">
-                 <IconWebsite size={16} /> Open Live Site
+              <a 
+                href={`http://${website.username}.nqube.in`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-primary btn-block"
+              >
+                <IconWebsite size={16} /> Open Live Site
               </a>
             )}
           </div>
