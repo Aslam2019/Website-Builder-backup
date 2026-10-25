@@ -62,6 +62,24 @@ def create_website(user_id, payload):
         or form_data.get("photographer_name")
         or user["username"]
     )
+        # ✅ Template Name Auto-Fix (Ithu inga add pannunga)
+    clean_tpl_name = tpl["name"].lower()
+    if "medical" in clean_tpl_name:
+        clean_tpl_name = "medical-01"
+    elif "salon" in clean_tpl_name:
+        clean_tpl_name = "salon-01"
+    elif "photography" in clean_tpl_name:
+        clean_tpl_name = "photography-01"
+    elif "real estate" in clean_tpl_name:
+        clean_tpl_name = "real-estate-01"
+    elif "gym" in clean_tpl_name:
+        clean_tpl_name = "gym-01"
+    elif "education" in clean_tpl_name:
+        clean_tpl_name = "education-01"
+    elif "portfolio" in clean_tpl_name:
+        clean_tpl_name = "portfolio-01"
+    else:
+        clean_tpl_name = clean_tpl_name.replace(" ", "-")
 
     doc = {
         "user_id": user["_id"],
@@ -70,7 +88,7 @@ def create_website(user_id, payload):
         "category_slug": category["slug"] if category else None,
         "category_name": category["name"] if category else None,
         "template_id": tpl["_id"],
-        "template_name": tpl["name"],
+        "template_name": clean_tpl_name,
         "pricing_plan_id": plan["_id"],
         "plan_name": plan["name"],
         "plan_price": plan["price"],
