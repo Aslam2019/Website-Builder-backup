@@ -122,6 +122,15 @@ export default function PhotographyTemplate({ data: propData, website }) {
   // ✅ 2. Uploads Base ah correct ah set pannanum
   const uploadsBase = window.__UPLOADS_BASE__ || getUploadsBase(data) || "https://d24e11dzjriy3b.cloudfront.net";
 
+  // ✅ 3. Image URL Helper (Missing /uploads/ and Slash fix)
+  const getImgUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    const base = uploadsBase.replace(/\/$/, ''); // Remove trailing slash
+    const cleanPath = path.startsWith('/') ? path : `/${path}`; // Ensure leading slash
+    return `${base}${cleanPath}`;
+  }
+
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('home')
@@ -144,7 +153,7 @@ export default function PhotographyTemplate({ data: propData, website }) {
     const imgs = [
       ...portfolio.map(p => p.image).filter(Boolean),
       ...gallery,
-    ].map(img => `${uploadsBase}${img}`)
+    ].map(img => getImgUrl(img))
     if (imgs.length >= 2) return imgs.slice(0, 5)
     return HERO_IMAGES
   }, [portfolio, gallery, uploadsBase])
@@ -240,7 +249,8 @@ ${message ? `\nMessage: ${message}` : ''}`
   }
 
   const heroWords = (data.tagline || 'Capturing Moments That Last Forever').split(' ')
-  const accentWords = ['Moments', 'Forever', 'Stories', 'Story', 'Life', 'Last']
+  // ✅ Text Color Fix: Ellam lowercase ah vachu check pandrom
+  const accentWords = ['moments', 'forever', 'stories', 'story', 'life', 'last', 'memories', 'capturing', 'creating']
 
   return (
     <div className="ph-root">
@@ -249,7 +259,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="ph-nav-inner">
           <div className="ph-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={studio} className="ph-nav-logo-img" />
+              <img src={getImgUrl(data.logo)} alt={studio} className="ph-nav-logo-img" />
             ) : (
               <span className="ph-nav-logo-mark">{initials}</span>
             )}
@@ -342,10 +352,11 @@ ${message ? `\nMessage: ${message}` : ''}`
 
           <h1 className="ph-hero-title ph-anim-fadeup" style={{ animationDelay: '0.1s' }}>
             {heroWords.map((word, i) => {
-              const clean = word.replace(/[^\w]/g, '')
+              const clean = word.replace(/[^\w]/g, '').toLowerCase()
               return (
                 <span key={i} className="ph-word-wrap">
                   <span className="ph-word" style={{ animationDelay: `${0.2 + i * 0.08}s` }}>
+                    {/* ✅ Lowercase ah check pandrom */}
                     {accentWords.includes(clean) ? <em className="ph-hero-accent">{word}</em> : word}
                   </span>{' '}
                 </span>
@@ -406,9 +417,9 @@ ${message ? `\nMessage: ${message}` : ''}`
               <div className="ph-about-visual reveal">
                 <div className="ph-about-visual-inner">
                   {data.profile_image ? (
-                    <img src={`${uploadsBase}${data.profile_image}`} alt={studio} className="ph-about-visual-img" />
+                    <img src={getImgUrl(data.profile_image)} alt={studio} className="ph-about-visual-img" />
                   ) : portfolio[0]?.image ? (
-                    <img src={`${uploadsBase}${portfolio[0].image}`} alt={studio} className="ph-about-visual-img" />
+                    <img src={getImgUrl(portfolio[0].image)} alt={studio} className="ph-about-visual-img" />
                   ) : (
                     <div className="ph-about-visual-fallback"><IconCamera size={80} /></div>
                   )}
@@ -489,10 +500,10 @@ ${message ? `\nMessage: ${message}` : ''}`
                   key={i}
                   className={`ph-portfolio-item ${i === 0 || i === 5 ? 'large' : ''} reveal`}
                   style={{ transitionDelay: `${i * 60}ms` }}
-                  onClick={() => p.image && setLightbox(`${uploadsBase}${p.image}`)}
+                  onClick={() => p.image && setLightbox(getImgUrl(p.image))}
                 >
                   {p.image ? (
-                    <img src={`${uploadsBase}${p.image}`} alt={p.title} className="ph-portfolio-img" />
+                    <img src={getImgUrl(p.image)} alt={p.title} className="ph-portfolio-img" />
                   ) : (
                     <div className="ph-portfolio-placeholder"><IconImage size={60} /></div>
                   )}
@@ -613,8 +624,8 @@ ${message ? `\nMessage: ${message}` : ''}`
               {gallery.map((url, i) => (
                 <div key={i} className="ph-gallery-cell reveal"
                   style={{ transitionDelay: `${i * 50}ms` }}
-                  onClick={() => setLightbox(`${uploadsBase}${url}`)}>
-                  <img src={`${uploadsBase}${url}`} alt={`Gallery ${i + 1}`} />
+                  onClick={() => setLightbox(getImgUrl(url))}>
+                  <img src={getImgUrl(url)} alt={`Gallery ${i + 1}`} />
                   <div className="ph-gallery-hover" />
                 </div>
               ))}
@@ -719,7 +730,7 @@ ${message ? `\nMessage: ${message}` : ''}`
           {/* Brand — compact */}
           <div className="ph-footer-brand">
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={studio} className="ph-footer-logo" />
+              <img src={getImgUrl(data.logo)} alt={studio} className="ph-footer-logo" />
             ) : (
               <div className="ph-footer-mark">{initials}</div>
             )}
