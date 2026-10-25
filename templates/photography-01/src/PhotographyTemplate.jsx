@@ -3,11 +3,6 @@ import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
 import './photography.css'
-export default function PhotographyTemplate({ data: propData, website }) {
-  // ✅ Ithu dhaan main fix
-  const data = window.__SITE_DATA__ || propData || {};
-
-  const [scrolled, setScrolled] = useState(false)
 
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
@@ -18,26 +13,22 @@ const HERO_IMAGES = [
 
 /* ============ Icons ============ */
 const IconArrow = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
   </svg>
 )
 const IconPin = ({ size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
   </svg>
 )
 const IconPhone = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
   </svg>
 )
 const IconEmail = ({ size = 18 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
     <polyline points="22,6 12,13 2,6" />
   </svg>
@@ -48,15 +39,13 @@ const IconWhatsApp = ({ size = 18 }) => (
   </svg>
 )
 const IconCamera = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
     <circle cx="12" cy="13" r="4" />
   </svg>
 )
 const IconAperture = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="12" cy="12" r="10" />
     <line x1="14.31" y1="8" x2="20.05" y2="17.94" />
     <line x1="9.69" y1="8" x2="21.17" y2="8" />
@@ -67,8 +56,7 @@ const IconAperture = ({ size = 22 }) => (
   </svg>
 )
 const IconImage = ({ size = 22 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="2" />
     <circle cx="8.5" cy="8.5" r="1.5" />
     <polyline points="21 15 16 10 5 21" />
@@ -127,6 +115,9 @@ function AnimatedCounter({ value, duration = 1800 }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
+export default function PhotographyTemplate({ data: propData, website }) {
+  // ✅ 1. Window data or Prop data ah edukkanum
+  const data = window.__SITE_DATA__ || propData || {};
   
   // ✅ 2. Uploads Base ah correct ah set pannanum
   const uploadsBase = window.__UPLOADS_BASE__ || getUploadsBase(data) || "https://d24e11dzjriy3b.cloudfront.net";
@@ -514,320 +505,4 @@ ${message ? `\nMessage: ${message}` : ''}`
                       )}
                     </div>
                   </div>
-                  <div className="ph-portfolio-shine" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ============ PACKAGES ============ */}
-      {services.length > 0 && (
-        <section id="packages" className="ph-section ph-section-alt">
-          <div className="ph-section-inner">
-            <div className="ph-section-head reveal">
-              <div className="ph-section-eyebrow">Pricing</div>
-              <h2 className="ph-section-title">Photography <em>Packages</em></h2>
-              <p className="ph-section-sub">Choose the perfect package for your special moments.</p>
-            </div>
-
-            <div className="ph-packages-grid">
-              {services.map((s, i) => (
-                <div key={i} className={`ph-package ${i === 1 ? 'featured' : ''} reveal`}
-                  style={{ transitionDelay: `${i * 80}ms` }}>
-                  <div className="ph-package-glow" />
-                  {s.category && <span className="ph-package-cat">{s.category}</span>}
-                  <h3 className="ph-package-name">{s.name || 'Package'}</h3>
-                  {s.duration && <div className="ph-package-meta">{s.duration}</div>}
-                  <div className="ph-package-price">{s.price || '₹—'}</div>
-                  {s.description && <p className="ph-package-desc">{s.description}</p>}
-                  {waLink && (
-                    <a href={buildWhatsAppLink(
-                      data.whatsapp || data.phone,
-                      `Hi, I'm interested in the "${s.name}" package (${s.price || ''}).`
-                    )} target="_blank" rel="noreferrer" className="ph-package-cta">
-                      <IconWhatsApp size={14} /> Enquire Now
-                    </a>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ============ WHY US ============ */}
-      <section id="why" className="ph-section">
-        <div className="ph-section-inner">
-          <div className="ph-section-head reveal">
-            <div className="ph-section-eyebrow">Why Choose Us</div>
-            <h2 className="ph-section-title">What Sets Us <em>Apart</em></h2>
-          </div>
-
-          <div className="ph-why-grid">
-            {whyItems.map((w, i) => (
-              <div key={i} className="ph-why-card reveal" style={{ transitionDelay: `${i * 90}ms` }}>
-                <div className="ph-why-num">0{i + 1}</div>
-                <h3 className="ph-why-title">{w.title}</h3>
-                <p className="ph-why-desc">{w.description || w.desc}</p>
-                <div className="ph-why-line" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ REVIEWS ============ */}
-      <section id="reviews" className="ph-section ph-section-alt">
-        <div className="ph-section-inner">
-          <div className="ph-section-head reveal">
-            <div className="ph-section-eyebrow">Client Reviews</div>
-            <h2 className="ph-section-title">Loved by <em>Clients</em></h2>
-          </div>
-
-          <div className="ph-reviews-grid">
-            {reviews.slice(0, 6).map((r, i) => (
-              <div key={i} className="ph-review-card reveal" style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="ph-review-quote">"</div>
-                <div className="ph-review-stars">
-                  {Array.from({ length: 5 }).map((_, s) => (
-                    <IconStar key={s} size={14}
-                      style={{ opacity: s < (r.rating || 5) ? 1 : 0.25 }} />
-                  ))}
-                </div>
-                <p className="ph-review-text">{r.text}</p>
-                <div className="ph-review-author">
-                  <div className="ph-review-avatar">{(r.client_name || 'A').charAt(0)}</div>
-                  <div>
-                    <div className="ph-review-name">{r.client_name || 'Anonymous'}</div>
-                    <div className="ph-review-role">Verified Client</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ============ GALLERY ============ */}
-      {gallery.length > 0 && (
-        <section id="gallery" className="ph-section">
-          <div className="ph-section-inner">
-            <div className="ph-section-head reveal">
-              <div className="ph-section-eyebrow">Gallery</div>
-              <h2 className="ph-section-title">Behind the <em>Scenes</em></h2>
-            </div>
-            <div className="ph-gallery-grid">
-              {gallery.map((url, i) => (
-                <div key={i} className="ph-gallery-cell reveal"
-                  style={{ transitionDelay: `${i * 50}ms` }}
-                  onClick={() => setLightbox(`${uploadsBase}${url}`)}>
-                  <img src={`${uploadsBase}${url}`} alt={`Gallery ${i + 1}`} />
-                  <div className="ph-gallery-hover" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ============ CONTACT ============ */}
-      <section id="contact" className="ph-section ph-section-alt">
-        <div className="ph-section-inner">
-          <div className="ph-section-head reveal">
-            <div className="ph-section-eyebrow">Get in Touch</div>
-            <h2 className="ph-section-title">Let's <em>Talk</em></h2>
-            <p className="ph-section-sub">Book a session or enquire about our packages.</p>
-          </div>
-
-          <div className="ph-contact-wrap">
-            <div className="ph-contact-left reveal">
-              {data.phone && (
-                <a href={`tel:${data.phone}`} className="ph-contact-card">
-                  <div className="ph-contact-card-icon"><IconPhone size={20} /></div>
-                  <div>
-                    <div className="ph-contact-card-label">Call Us</div>
-                    <div className="ph-contact-card-value">{data.phone}</div>
-                  </div>
-                </a>
-              )}
-              {data.email && (
-                <a href={`mailto:${data.email}`} className="ph-contact-card">
-                  <div className="ph-contact-card-icon"><IconEmail size={20} /></div>
-                  <div>
-                    <div className="ph-contact-card-label">Email</div>
-                    <div className="ph-contact-card-value">{data.email}</div>
-                  </div>
-                </a>
-              )}
-              {data.address && (
-                <div className="ph-contact-card">
-                  <div className="ph-contact-card-icon"><IconPin size={20} /></div>
-                  <div>
-                    <div className="ph-contact-card-label">Studio</div>
-                    <div className="ph-contact-card-value">{data.address}</div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <form className="ph-contact-form reveal" onSubmit={submitBooking}>
-              <h3 className="ph-form-title">Request a Session</h3>
-              <p className="ph-form-sub">Fill the form — it opens WhatsApp instantly.</p>
-
-              <div className="ph-cf-field">
-                <label>Your Name *</label>
-                <input type="text" value={booking.name}
-                  onChange={e => setBooking({ ...booking, name: e.target.value })}
-                  placeholder="e.g. Priya Sharma" required />
-              </div>
-              <div className="ph-cf-field">
-                <label>Phone *</label>
-                <input type="tel" value={booking.phone}
-                  onChange={e => setBooking({ ...booking, phone: e.target.value })}
-                  placeholder="9876543210" required />
-              </div>
-              <div className="ph-cf-field">
-                <label>Session Type</label>
-                <select value={booking.service}
-                  onChange={e => setBooking({ ...booking, service: e.target.value })}>
-                  <option value="">Select service</option>
-                  {services.map((s, i) => (
-                    <option key={i} value={s.name}>{s.name}</option>
-                  ))}
-                  <option value="Wedding">Wedding</option>
-                  <option value="Portrait">Portrait</option>
-                  <option value="Event">Event</option>
-                </select>
-              </div>
-              <div className="ph-cf-field">
-                <label>Preferred Date</label>
-                <input type="date" value={booking.date}
-                  onChange={e => setBooking({ ...booking, date: e.target.value })} />
-              </div>
-              <div className="ph-cf-field">
-                <label>Message</label>
-                <textarea rows={3} value={booking.message}
-                  onChange={e => setBooking({ ...booking, message: e.target.value })}
-                  placeholder="Tell us about your shoot..." />
-              </div>
-
-              <button type="submit" className="ph-btn ph-btn-primary ph-btn-block">
-                <IconWhatsApp size={16} /> Send via WhatsApp
-              </button>
-            </form>
-          </div>
-        </div>
-      </section>
-
-            {/* ============ FOOTER ============ */}
-      <footer className="ph-footer">
-        <div className="ph-footer-inner">
-
-          {/* Brand — compact */}
-          <div className="ph-footer-brand">
-            {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={studio} className="ph-footer-logo" />
-            ) : (
-              <div className="ph-footer-mark">{initials}</div>
-            )}
-            <span className="ph-footer-name">{studio}</span>
-          </div>
-
-          {/* Links — 2-column compact grid */}
-          <div className="ph-footer-grid">
-
-            {/* Explore + Services combined column on desktop, split on mobile */}
-            <div className="ph-footer-col">
-              <h4 className="ph-footer-heading">Explore</h4>
-              <ul className="ph-footer-list">
-                {navLinks.slice(0, 4).map(l => (
-                  <li key={l.id}>
-                    <button className="ph-footer-link" onClick={() => scrollTo(l.id)}>
-                      {l.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {services.length > 0 && (
-              <div className="ph-footer-col">
-                <h4 className="ph-footer-heading">Services</h4>
-                <ul className="ph-footer-list">
-                  {services.slice(0, 4).map((s, i) => (
-                    <li key={i}>
-                      <button className="ph-footer-link" onClick={() => scrollTo('packages')}>
-                        {s.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="ph-footer-col ph-footer-col-connect">
-              <h4 className="ph-footer-heading">Connect</h4>
-              <ul className="ph-footer-list">
-                {data.phone && (
-                  <li>
-                    <a href={`tel:${data.phone}`} className="ph-footer-link">
-                      {data.phone}
-                    </a>
-                  </li>
-                )}
-                {data.email && (
-                  <li>
-                    <a href={`mailto:${data.email}`} className="ph-footer-link">
-                      {data.email}
-                    </a>
-                  </li>
-                )}
-              </ul>
-            </div>
-          </div>
-
-          {/* Socials row */}
-          {socials.length > 0 && (
-            <div className="ph-footer-socials">
-              {socials.map((s, i) => (
-                <a key={i} href={s.url} target="_blank" rel="noreferrer"
-                  aria-label={s.label} className="ph-footer-social">
-                  <s.Icon size={14} />
-                </a>
-              ))}
-              {waLink && (
-                <a href={waLink} target="_blank" rel="noreferrer"
-                  aria-label="WhatsApp" className="ph-footer-social ph-footer-social-wa">
-                  <IconWhatsApp size={14} />
-                </a>
-              )}
-            </div>
-          )}
-
-          {/* Bottom — one line centered */}
-          <div className="ph-footer-bottom">
-            <p className="ph-footer-copy">
-              © {new Date().getFullYear()} <span className="ph-footer-copy-brand">{studio}</span>
-              <span className="ph-footer-copy-sep"> · </span>
-              <a href="https://qifawtechnologies.com/" target="_blank" rel="noreferrer"
-                className="ph-footer-credit-link">
-                Qifaw Technologies
-              </a>
-            </p>
-          </div>
-        </div>
-      </footer>
-
-      {/* ============ LIGHTBOX ============ */}
-      {lightbox && (
-        <div className="ph-lightbox" onClick={() => setLightbox(null)}>
-          <button className="ph-lightbox-close" onClick={() => setLightbox(null)}>✕</button>
-          <img src={lightbox} alt="Preview" className="ph-lightbox-img" onClick={e => e.stopPropagation()} />
-        </div>
-      )}
-      }
-    </div>
-  )
-
+                  <div className="ph-portfolio
