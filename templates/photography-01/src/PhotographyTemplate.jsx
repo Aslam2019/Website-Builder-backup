@@ -4,6 +4,33 @@ import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
 import './photography.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1554048612-b6a482bc67e5?auto=format&fit=crop&w=1920&q=80',
@@ -259,7 +286,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="ph-nav-inner">
           <div className="ph-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={getImgUrl(data.logo)} alt={studio} className="ph-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={studio} className="ph-nav-logo-img" />
             ) : (
               <span className="ph-nav-logo-mark">{initials}</span>
             )}
@@ -417,9 +444,9 @@ ${message ? `\nMessage: ${message}` : ''}`
               <div className="ph-about-visual reveal">
                 <div className="ph-about-visual-inner">
                   {data.profile_image ? (
-                    <img src={getImgUrl(data.profile_image)} alt={studio} className="ph-about-visual-img" />
+                    <img src={getImgUrl((data.profile_image))} alt={studio} className="ph-about-visual-img" />
                   ) : portfolio[0]?.image ? (
-                    <img src={getImgUrl(portfolio[0].image)} alt={studio} className="ph-about-visual-img" />
+                    <img src={getImgUrl((portfolio[0].image))} alt={studio} className="ph-about-visual-img" />
                   ) : (
                     <div className="ph-about-visual-fallback"><IconCamera size={80} /></div>
                   )}
@@ -503,7 +530,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                   onClick={() => p.image && setLightbox(getImgUrl(p.image))}
                 >
                   {p.image ? (
-                    <img src={getImgUrl(p.image)} alt={p.title} className="ph-portfolio-img" />
+                    <img src={getImgUrl((p.image))} alt={p.title} className="ph-portfolio-img" />
                   ) : (
                     <div className="ph-portfolio-placeholder"><IconImage size={60} /></div>
                   )}
@@ -625,7 +652,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                 <div key={i} className="ph-gallery-cell reveal"
                   style={{ transitionDelay: `${i * 50}ms` }}
                   onClick={() => setLightbox(getImgUrl(url))}>
-                  <img src={getImgUrl(url)} alt={`Gallery ${i + 1}`} />
+                  <img src={getImgUrl((url))} alt={`Gallery ${i + 1}`} />
                   <div className="ph-gallery-hover" />
                 </div>
               ))}
@@ -730,7 +757,7 @@ ${message ? `\nMessage: ${message}` : ''}`
           {/* Brand — compact */}
           <div className="ph-footer-brand">
             {data.logo ? (
-              <img src={getImgUrl(data.logo)} alt={studio} className="ph-footer-logo" />
+              <img src={getImgUrl((data.logo))} alt={studio} className="ph-footer-logo" />
             ) : (
               <div className="ph-footer-mark">{initials}</div>
             )}
@@ -826,7 +853,7 @@ ${message ? `\nMessage: ${message}` : ''}`
       {lightbox && (
         <div className="ph-lightbox" onClick={() => setLightbox(null)}>
           <button className="ph-lightbox-close" onClick={() => setLightbox(null)}>✕</button>
-          <img src={lightbox} alt="Preview" className="ph-lightbox-img" onClick={e => e.stopPropagation()} />
+          <img src={getImgUrl(lightbox)} alt="Preview" className="ph-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

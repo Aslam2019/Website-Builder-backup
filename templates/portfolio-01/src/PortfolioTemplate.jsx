@@ -5,6 +5,33 @@ import useScrollReveal from './hooks/useScrollReveal'
 import { SkillLogo } from './TechIcons'
 import './portfolio.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============================================================
    ICONS
    ============================================================ */
@@ -182,7 +209,7 @@ function ProjectCard3D({ project, index, uploadsBase }) {
     >
       <div className="pt-project-image">
         {project.image ? (
-          <img src={`${uploadsBase}${project.image}`} alt={project.name} />
+          <img src={getImgUrl((project.image))} alt={project.name} />
         ) : (
           <div className="pt-project-placeholder">
             <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -269,7 +296,7 @@ function HeroCard3D({ data, name, initials, uploadsBase }) {
 
         <div className="pt-3d-avatar">
           {data.profile_image ? (
-            <img src={`${uploadsBase}${data.profile_image}`} alt={name} />
+            <img src={getImgUrl((data.profile_image))} alt={name} />
           ) : (
             <div className="pt-3d-avatar-fallback">{initials}</div>
           )}
@@ -306,6 +333,8 @@ function HeroCard3D({ data, name, initials, uploadsBase }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
+
+
 export default function PortfolioTemplate({ data, website }) {
   const uploadsBase = getUploadsBase(data)
 
@@ -420,7 +449,7 @@ export default function PortfolioTemplate({ data, website }) {
             {data.resume && (
               <li>
                 <a
-                  href={`${uploadsBase}${data.resume}`}
+                  href={getImgUrl(data.resume)}
                   download
                   target="_blank"
                   rel="noreferrer"
@@ -470,7 +499,7 @@ export default function PortfolioTemplate({ data, website }) {
 
             {data.resume && (
               <a
-                href={`${uploadsBase}${data.resume}`}
+                href={getImgUrl(data.resume)}
                 download
                 target="_blank"
                 rel="noreferrer"
@@ -528,7 +557,7 @@ export default function PortfolioTemplate({ data, website }) {
 
             <div className="pt-hero-actions">
               {data.resume ? (
-                <a href={`${uploadsBase}${data.resume}`} download
+                <a href={getImgUrl(data.resume)} download
                   target="_blank" rel="noreferrer" className="pt-btn pt-btn-primary">
                   <IconDownload size={16} /> Download Resume
                 </a>
@@ -585,7 +614,7 @@ export default function PortfolioTemplate({ data, website }) {
                   <div className="pt-about-image-glow" />
                   <div className="pt-about-image-ring" />
                   {data.profile_image ? (
-                    <img src={`${uploadsBase}${data.profile_image}`}
+                    <img src={getImgUrl((data.profile_image))}
                       alt={name} className="pt-about-image pt-about-image-3d" />
                   ) : (
                     <div className="pt-about-image pt-about-image-fallback pt-about-image-3d">
@@ -688,7 +717,7 @@ export default function PortfolioTemplate({ data, website }) {
 
                 <div className="pt-about-ctas">
                   {data.resume && (
-                    <a href={`${uploadsBase}${data.resume}`} download
+                    <a href={getImgUrl(data.resume)} download
                       target="_blank" rel="noreferrer" className="pt-btn pt-btn-primary">
                       <IconDownload size={15} /> Get Resume
                     </a>
@@ -834,7 +863,7 @@ export default function PortfolioTemplate({ data, website }) {
                   </p>
                 </div>
               </div>
-              <a href={`${uploadsBase}${data.resume}`} download
+              <a href={getImgUrl(data.resume)} download
                 target="_blank" rel="noreferrer" className="pt-btn pt-btn-primary">
                 <IconDownload size={16} /> Download PDF
               </a>

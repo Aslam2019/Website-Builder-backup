@@ -3,6 +3,33 @@ import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import './education.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1920&q=80',
@@ -222,6 +249,8 @@ function TiltCard({ children, className = '' }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
+
+
 export default function EducationTemplate({ data, website }) {
   const uploadsBase = getUploadsBase(data)
 
@@ -254,7 +283,7 @@ export default function EducationTemplate({ data, website }) {
     const imgs = [
       ...courses.map(c => c.image).filter(Boolean),
       ...gallery,
-    ].map(img => `${uploadsBase}${img}`)
+    ].map(img => getImgUrl(img))
     if (imgs.length >= 2) return imgs.slice(0, 5)
     return HERO_IMAGES
   }, [courses, gallery, uploadsBase])
@@ -341,7 +370,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="ed-nav-inner">
           <div className="ed-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={institute} className="ed-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={institute} className="ed-nav-logo-img" />
             ) : (
               <span className="ed-nav-logo-mark">{initials}</span>
             )}
@@ -592,9 +621,9 @@ ${message ? `\nMessage: ${message}` : ''}`
               <div className="ed-about-right">
                 <div className="ed-about-frame">
                   {data.profile_image ? (
-                    <img src={`${uploadsBase}${data.profile_image}`} alt={institute} className="ed-about-img" />
+                    <img src={getImgUrl((data.profile_image))} alt={institute} className="ed-about-img" />
                   ) : courses[0]?.image ? (
-                    <img src={`${uploadsBase}${courses[0].image}`} alt={institute} className="ed-about-img" />
+                    <img src={getImgUrl((courses[0].image))} alt={institute} className="ed-about-img" />
                   ) : (
                     <div className="ed-about-img-fallback">
                       <IconCode size={80} />
@@ -750,7 +779,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                   <div key={i} className="ed-mentor-card">
                     <div className="ed-mentor-img-wrap">
                       {m.image ? (
-                        <img src={`${uploadsBase}${m.image}`} alt={name} className="ed-mentor-img" />
+                        <img src={getImgUrl((m.image))} alt={name} className="ed-mentor-img" />
                       ) : (
                         <div className="ed-mentor-img-fallback">
                           <div className="ed-mentor-fallback-pattern" />
@@ -819,9 +848,9 @@ ${message ? `\nMessage: ${message}` : ''}`
                   <div
                     key={i}
                     className={`ed-gallery-cell ${sizeClass}`}
-                    onClick={() => setLightbox(`${uploadsBase}${url}`)}
+                    onClick={() => setLightbox(getImgUrl(url))}
                   >
-                    <img src={`${uploadsBase}${url}`} alt={`Campus ${i + 1}`} />
+                    <img src={getImgUrl((url))} alt={`Campus ${i + 1}`} />
                     <div className="ed-gallery-overlay">
                       <div className="ed-gallery-zoom">
                         <IconSparkle size={20} />
@@ -1026,7 +1055,7 @@ ${message ? `\nMessage: ${message}` : ''}`
             <div className="ed-footer-col ed-footer-col-brand">
               <div className="ed-footer-brand-row">
                 {data.logo ? (
-                  <img src={`${uploadsBase}${data.logo}`} alt={institute} className="ed-footer-logo" />
+                  <img src={getImgUrl((data.logo))} alt={institute} className="ed-footer-logo" />
                 ) : (
                   <div className="ed-footer-mark">{initials}</div>
                 )}
@@ -1165,7 +1194,7 @@ ${message ? `\nMessage: ${message}` : ''}`
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <img src={lightbox} alt="Preview" className="ed-lightbox-img" onClick={e => e.stopPropagation()} />
+          <img src={getImgUrl(lightbox)} alt="Preview" className="ed-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

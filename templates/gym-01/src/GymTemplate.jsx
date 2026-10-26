@@ -3,6 +3,33 @@ import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import './gym.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1920&q=80',
   'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1920&q=80',
@@ -162,6 +189,8 @@ function Counter({ value, duration = 1800, suffix = '' }) {
   return <span ref={ref}>{count}{suffix}</span>
 }
 
+
+
 export default function GymTemplate({ data, website }) {
   // ✅ Get uploads base from config
   const uploadsBase = getUploadsBase(data)
@@ -180,7 +209,7 @@ export default function GymTemplate({ data, website }) {
   const rawGallery = Array.isArray(data.gallery) ? data.gallery.filter(Boolean) : []
 
   const gallery = rawGallery.length > 0
-    ? rawGallery.map(img => `${uploadsBase}${img}`)
+    ? rawGallery.map(img => getImgUrl(img))
     : STUDIO_IMAGES
 
   const features = Array.isArray(data.features) && data.features.length > 0
@@ -276,7 +305,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="gy-nav-inner">
           <div className="gy-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={gym} className="gy-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={gym} className="gy-nav-logo-img" />
             ) : (
               <span className="gy-nav-logo-mark">{initials}</span>
             )}
@@ -487,11 +516,11 @@ ${message ? `\nMessage: ${message}` : ''}`
               <div className="gy-about-visual">
                 <div className="gy-about-visual-img">
                   {data.profile_image ? (
-                    <img src={`${uploadsBase}${data.profile_image}`} alt={gym} />
+                    <img src={getImgUrl((data.profile_image))} alt={gym} />
                   ) : trainers[0]?.image ? (
-                    <img src={`${uploadsBase}${trainers[0].image}`} alt={gym} />
+                    <img src={getImgUrl((trainers[0].image))} alt={gym} />
                   ) : (
-                    <img src={STUDIO_IMAGES[0]} alt={gym} />
+                    <img src={getImgUrl(STUDIO_IMAGES[0])} alt={gym} />
                   )}
                 </div>
                 <div className="gy-about-badge">
@@ -562,9 +591,9 @@ ${message ? `\nMessage: ${message}` : ''}`
                   <div className="gy-program-row-num">0{i + 1}</div>
                   <div className="gy-program-row-img">
                     {p.image ? (
-                      <img src={`${uploadsBase}${p.image}`} alt={p.name} />
+                      <img src={getImgUrl((p.image))} alt={p.name} />
                     ) : (
-                      <img src={STUDIO_IMAGES[i % STUDIO_IMAGES.length]} alt={p.name} />
+                      <img src={getImgUrl(STUDIO_IMAGES[i % STUDIO_IMAGES.length])} alt={p.name} />
                     )}
                   </div>
                   <div className="gy-program-row-content">
@@ -621,7 +650,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                   <div key={i} className="gy-trainer-card">
                     <div className="gy-trainer-img-wrap">
                       {t.image ? (
-                        <img src={`${uploadsBase}${t.image}`} alt={name} className="gy-trainer-img" />
+                        <img src={getImgUrl((t.image))} alt={name} className="gy-trainer-img" />
                       ) : (
                         <div className="gy-trainer-img-fallback">{initials}</div>
                       )}
@@ -781,7 +810,7 @@ ${message ? `\nMessage: ${message}` : ''}`
             {gallery.slice(0, 6).map((url, i) => (
               <div key={i} className={`gy-gallery-cell gy-gallery-cell-${i + 1}`}
                 onClick={() => setLightbox(url)}>
-                <img src={url} alt={`Studio ${i + 1}`} />
+                <img src={getImgUrl(url)} alt={`Studio ${i + 1}`} />
                 <div className="gy-gallery-overlay">
                   <IconArrowNE size={20} />
                 </div>
@@ -898,7 +927,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="gy-footer-inner">
           <div className="gy-footer-brand">
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={gym} className="gy-footer-logo" />
+              <img src={getImgUrl((data.logo))} alt={gym} className="gy-footer-logo" />
             ) : (
               <div className="gy-footer-mark">{initials}</div>
             )}
@@ -985,7 +1014,7 @@ ${message ? `\nMessage: ${message}` : ''}`
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <img src={lightbox} alt="Preview" className="gy-lightbox-img" onClick={e => e.stopPropagation()} />
+          <img src={getImgUrl(lightbox)} alt="Preview" className="gy-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

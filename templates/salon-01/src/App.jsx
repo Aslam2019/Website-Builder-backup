@@ -1,56 +1,45 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import SalonTemplate from './SalonTemplate'
+
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
 
 export default function App() {
   const [config, setConfig] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
 
   useEffect(() => {
-    fetch('./config.json')
-      .then((r) => {
-        if (!r.ok) throw new Error('Config not found')
-        return r.json()
-      })
-      .then((data) => {
-        setConfig(data)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error('Config load failed:', err)
-        setError(err.message)
-        setLoading(false)
-      })
+    if (typeof window !== 'undefined' && window.__SITE_DATA__) {
+      setConfig(window.__SITE_DATA__)
+    } else {
+      setConfig({})
+    }
   }, [])
 
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        background: '#0b0a1f',
-        color: '#fff',
-        fontFamily: 'Inter, sans-serif',
-      }}>
-        <div>Loading...</div>
-      </div>
-    )
-  }
-
-  if (error || !config) {
-    return (
-      <div style={{
-        padding: 40,
-        textAlign: 'center',
-        fontFamily: 'Inter, sans-serif',
-      }}>
-        <h2>Configuration error</h2>
-        <p>{error}</p>
-      </div>
-    )
-  }
-
+  if (!config) return <div style={{ height: '100vh', background: '#111' }}></div>
+  
   return <SalonTemplate data={config} />
 }

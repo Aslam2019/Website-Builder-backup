@@ -4,6 +4,33 @@ import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
 import './realestate.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=1920&q=80',
@@ -139,6 +166,8 @@ const ICON_MAP = {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
+
+
 export default function RealEstateTemplate({ data, website }) {
   const uploadsBase = getUploadsBase(data)
 
@@ -155,7 +184,7 @@ export default function RealEstateTemplate({ data, website }) {
     const uploaded = properties
       .map((p) => p.image)
       .filter(Boolean)
-      .map((img) => `${uploadsBase}${img}`)
+      .map((img) => getImgUrl(img))
     if (uploaded.length >= 2) return uploaded
     return HERO_IMAGES
   }, [properties, uploadsBase])
@@ -263,7 +292,7 @@ export default function RealEstateTemplate({ data, website }) {
         <div className="re-nav-inner">
           <div className="re-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={company} className="re-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={company} className="re-nav-logo-img" />
             ) : (
               <span className="re-nav-logo-mark">{initials}</span>
             )}
@@ -438,7 +467,7 @@ export default function RealEstateTemplate({ data, website }) {
                 <div className="re-about-visual">
                   {properties[0]?.image ? (
                     <img
-                      src={`${uploadsBase}${properties[0].image}`}
+                      src={getImgUrl(properties[0].image)}
                       alt={company}
                       className="re-about-visual-img"
                     />
@@ -599,7 +628,7 @@ export default function RealEstateTemplate({ data, website }) {
                   style={{ transitionDelay: `${i * 60}ms` }}>
                   <div className="re-property-img-wrap">
                     {p.image ? (
-                      <img src={`${uploadsBase}${p.image}`} alt={p.name} className="re-property-img" />
+                      <img src={getImgUrl((p.image))} alt={p.name} className="re-property-img" />
                     ) : (
                       <div className="re-property-placeholder">
                         <svg width="60" height="60" viewBox="0 0 24 24" fill="none"
@@ -745,7 +774,7 @@ export default function RealEstateTemplate({ data, website }) {
             <div className="re-footer-col re-footer-col-brand">
               <div className="re-footer-brand">
                 {data.logo ? (
-                  <img src={`${uploadsBase}${data.logo}`} alt={company} className="re-footer-logo" />
+                  <img src={getImgUrl((data.logo))} alt={company} className="re-footer-logo" />
                 ) : (
                   <div className="re-footer-mark">{initials}</div>
                 )}

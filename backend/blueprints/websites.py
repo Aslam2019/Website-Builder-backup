@@ -1,4 +1,4 @@
-from flask import Blueprint, request, g
+from flask import Blueprint, request, g, redirect, Response
 from middleware.auth_middleware import token_required
 from middleware.role_middleware import admin_required
 from utils.responses import success, error
@@ -8,13 +8,12 @@ from services.website_service import (
     update_website, delete_website,
 )
 from database.mongo import get_db
-
-# ✅ 1. Puthu Imports (Publish ku)
+import requests
+from utils.template_engine import render_template
 from publish_service import trigger_publish
 from datetime import datetime
 
 websites_bp = Blueprint("websites", __name__)
-
 
 # ============================================================
 # CREATE (draft)
@@ -29,7 +28,6 @@ def create():
         return error(err, 400)
     return success({"website": serialize_doc(doc)}, "Website created", 201)
 
-
 # ============================================================
 # LIST — User's own websites (Admin: ?all=true)
 # ============================================================
@@ -38,14 +36,11 @@ def create():
 def list_mine():
     """User: own websites. Admin: ?all=true returns all."""
     db = get_db()
-
     if g.role == "super_admin" and request.args.get("all", "false").lower() == "true":
         docs = list(db.websites.find({}).sort("created_at", -1))
     else:
         docs = get_user_websites(g.user_id)
-
     return success({"websites": serialize_doc(docs)})
-
 
 # ============================================================
 # ✅ MY-WEBSITE — Latest published website (for QR code)
@@ -55,9 +50,7 @@ def list_mine():
 def get_my_website():
     if request.method == "OPTIONS":
         return "", 200
-
     db = get_db()
-
     doc = db.websites.find_one(
         {
             "user_id": g.user_id,
@@ -65,7 +58,6 @@ def get_my_website():
         },
         sort=[("published_at", -1), ("updated_at", -1)],
     )
-
     if not doc:
         doc = db.websites.find_one(
             {
@@ -74,68 +66,42 @@ def get_my_website():
             },
             sort=[("updated_at", -1)],
         )
-
     if not doc:
         return success(None, "No published website found")
-
     return success(serialize_doc(doc))
 
-
 # ============================================================
-# 🚀 PUBLISH WEBSITE (SQS ku anuppa)
-# ============================================================
-@websites_bp.route("/<website_id>/publish", methods=["POST"])
-@token_required
-def publish_website(website_id):
-    """User clicks Publish -> Send to SQS -> Update DB."""
-    if not is_valid_object_id(website_id):
-        return error("Invalid website id", 400)
+# ✅ SUBDOMAIN RESOLVE (URL Masking)
 
-    # 1. Website details DB la irundhu edukkrom
-    doc = get_website_by_id(website_id)
-    if not doc:
-        return error("Website not found", 404)
+from flask import Response, jsonify
+import requests
 
-    # Access check
-    if g.role != "super_admin" and str(doc["user_id"]) != g.user_id:
-        return error("Access denied", 403)
+@websites_bp.route('/resolve/<subdomain>', methods=['GET'], defaults={'path': ''}, strict_slashes=False)
+@websites_bp.route('/resolve/<subdomain>/<path:path>', methods=['GET'])
+def resolve_subdomain(subdomain, path):
+    db = get_db()
+    website = db.websites.find_one({
+        "username": {"$regex": f"^{subdomain}$", "$options": "i"}, 
+        "status": "published"
+    })
+    
+    if not website:
+        return jsonify({"message": "Website not found in DB", "success": False}), 404
 
-    # 2. Frontend la irundhu HTML content ah edukkrom
-    data = request.get_json(silent=True) or {}
-    html_content = data.get("html_content")
-
-    if not html_content:
-        return error("HTML content is required to publish", 400)
-
-    # 3. SQS ku anuppa trigger_publish ah call panrom
-    result = trigger_publish(
-        website_id=website_id,
-        user_id=g.user_id,
-        template_name=doc.get("template_id", "unknown"),
-        html_content=html_content
-    )
-
-    # 4. Status ah DB la update panrom
-    if result.get("success"):
-        db = get_db()
-        db.websites.update_one(
-            {"_id": doc["_id"]},
-            {"$set": {
-                "status": "published",
-                "published_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            }}
-        )
-        return success(
-            {"message_id": result.get("message_id")}, 
-            "Publishing started! Your site will be live soon.", 
-            200
-        )
-    else:
-        return error(result.get("error", "Publish failed due to server error"), 500)
-
-
-# ============================================================
+    if website.get("live_url"):
+        try:
+            # ✅ 1. Config.json ah thedina, JSON ah return pannurom
+            if path == "config.json":
+                return jsonify(website.get("form_data", {}))
+            
+            # ✅ 2. Illana, CloudFront la irundha HTML ah return pannurom
+            response = requests.get(website["live_url"], verify=False)
+            return Response(response.text, mimetype='text/html')
+        except Exception as e:
+            return jsonify({"message": f"Error fetching CloudFront: {str(e)}", "success": False}), 500
+            
+    return jsonify({"message": "Live URL not generated", "success": False}), 404
+#==========================================================
 # GET ONE — by ID
 # ============================================================
 @websites_bp.route("/<website_id>", methods=["GET"])
@@ -146,12 +112,9 @@ def get_one(website_id):
     doc = get_website_by_id(website_id)
     if not doc:
         return error("Website not found", 404)
-
     if g.role != "super_admin" and str(doc["user_id"]) != g.user_id:
         return error("Access denied", 403)
-
     return success({"website": serialize_doc(doc)})
-
 
 # ============================================================
 # UPDATE
@@ -166,8 +129,27 @@ def edit(website_id):
     doc, err = update_website(website_id, g.user_id, data, is_admin=is_admin)
     if err:
         return error(err, 403 if "access" in err.lower() else 404)
+    
+    # ✅ Ithu dhaan pudhu logic
+    if doc and doc.get("status") == "published":
+        try:
+            template_name = doc.get("template_name", "unknown")
+            form_data = doc.get("form_data", {})
+            cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net"
+            
+            html_content = render_template(template_name, form_data, cloudfront_base)
+            
+            trigger_publish(
+                website_id=str(website_id),
+                user_id=str(g.user_id),
+                username=str(doc.get("username", "")),
+                template_name=template_name,
+                html_content=html_content
+            )
+            print(f"✅ Updated publish for site-{website_id}")
+        except Exception as e:
+            print(f"❌ Edit publish failed: {e}")
     return success({"website": serialize_doc(doc)}, "Website updated")
-
 
 # ============================================================
 # DELETE

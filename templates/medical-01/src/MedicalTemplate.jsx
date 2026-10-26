@@ -3,6 +3,33 @@ import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import './medical.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
@@ -143,6 +170,8 @@ function Counter({ value, duration = 1800, suffix = '' }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
+
+
 export default function MedicalTemplate({ data, website }) {
   // ✅ Get uploads base from config
   const uploadsBase = getUploadsBase(data)
@@ -160,7 +189,7 @@ export default function MedicalTemplate({ data, website }) {
 
   // ✅ Gallery — use uploaded images, else fallback to demo images
   const gallery = rawGallery.length > 0
-    ? rawGallery.map(img => `${uploadsBase}${img}`)
+    ? rawGallery.map(img => getImgUrl(img))
     : HERO_IMAGES
 
   const features = Array.isArray(data.features) && data.features.length > 0
@@ -255,7 +284,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="md2-nav-inner">
           <div className="md2-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={clinic} className="md2-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={clinic} className="md2-nav-logo-img" />
             ) : (
               <span className="md2-nav-logo-mark">{initials}</span>
             )}
@@ -338,20 +367,20 @@ ${message ? `\nMessage: ${message}` : ''}`
           <div className="md2-hero-visual">
             <div className="md2-hero-visual-main">
               {doctors[0]?.image ? (
-                <img src={`${uploadsBase}${doctors[0].image}`} alt={clinic} className="md2-hero-img" />
+                <img src={getImgUrl((doctors[0].image))} alt={clinic} className="md2-hero-img" />
               ) : rawGallery[0] ? (
-                <img src={`${uploadsBase}${rawGallery[0]}`} alt={clinic} className="md2-hero-img" />
+                <img src={getImgUrl((rawGallery[0]))} alt={clinic} className="md2-hero-img" />
               ) : (
-                <img src={HERO_IMAGES[0]} alt={clinic} className="md2-hero-img" />
+                <img src={getImgUrl(HERO_IMAGES[0])} alt={clinic} className="md2-hero-img" />
               )}
             </div>
             <div className="md2-hero-visual-sub">
               {doctors[1]?.image ? (
-                <img src={`${uploadsBase}${doctors[1].image}`} alt="" className="md2-hero-img-sm" />
+                <img src={getImgUrl((doctors[1].image))} alt="" className="md2-hero-img-sm" />
               ) : rawGallery[1] ? (
-                <img src={`${uploadsBase}${rawGallery[1]}`} alt="" className="md2-hero-img-sm" />
+                <img src={getImgUrl((rawGallery[1]))} alt="" className="md2-hero-img-sm" />
               ) : (
-                <img src={HERO_IMAGES[1]} alt="" className="md2-hero-img-sm" />
+                <img src={getImgUrl(HERO_IMAGES[1])} alt="" className="md2-hero-img-sm" />
               )}
             </div>
 
@@ -572,7 +601,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                     <div className="md2-doctor-ring">
                       <div className="md2-doctor-img-wrap">
                         {d.image ? (
-                          <img src={`${uploadsBase}${d.image}`} alt={name} className="md2-doctor-img" />
+                          <img src={getImgUrl((d.image))} alt={name} className="md2-doctor-img" />
                         ) : (
                           <div className="md2-doctor-img-fallback">{initials}</div>
                         )}
@@ -691,7 +720,7 @@ ${message ? `\nMessage: ${message}` : ''}`
             {gallery.concat(gallery).map((url, i) => (
               <div key={i} className="md2-gallery-cell"
                 onClick={() => setLightbox(url)}>
-                <img src={url} alt={`Facility ${i + 1}`} />
+                <img src={getImgUrl(url)} alt={`Facility ${i + 1}`} />
               </div>
             ))}
           </div>
@@ -814,7 +843,7 @@ ${message ? `\nMessage: ${message}` : ''}`
           <div className="md2-footer-top">
             <div className="md2-footer-brand">
               {data.logo ? (
-                <img src={`${uploadsBase}${data.logo}`} alt={clinic} className="md2-footer-logo" />
+                <img src={getImgUrl((data.logo))} alt={clinic} className="md2-footer-logo" />
               ) : (
                 <div className="md2-footer-mark">{initials}</div>
               )}
@@ -918,7 +947,7 @@ ${message ? `\nMessage: ${message}` : ''}`
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
-          <img src={lightbox} alt="Preview" className="md2-lightbox-img" onClick={e => e.stopPropagation()} />
+          <img src={getImgUrl(lightbox)} alt="Preview" className="md2-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </div>

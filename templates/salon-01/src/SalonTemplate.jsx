@@ -4,6 +4,33 @@ import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
 import './salon.css'
 
+const getImgUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return path;
+  
+  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
+  if (path.startsWith('http')) return path;
+  
+  const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
+  
+  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
+  if (path.startsWith('/uploads/')) return `${base}${path}`;
+  if (path.startsWith('uploads/')) return `${base}/${path}`;
+  
+  // 3. Vera path irundha, /uploads/ sethu return pannu
+  if (path.startsWith('/')) return `${base}/uploads${path}`;
+  
+  // 4. Filename mattum irundha
+  return `${base}/uploads/${path}`;
+};
+
+
+
+
+
+
+
+
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
   'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1920&q=80',
@@ -143,6 +170,8 @@ const digitsOnly = (val) => {
 }
 
 /* ============================================================ */
+
+
 export default function SalonTemplate({ data, website }) {
   // ✅ Get uploads base from config
   const uploadsBase = getUploadsBase(data)
@@ -162,7 +191,7 @@ export default function SalonTemplate({ data, website }) {
   const heroSlides = useMemo(() => {
     const uploaded = [...gallery]
       .filter(Boolean)
-      .map((img) => `${uploadsBase}${img}`)
+      .map((img) => getImgUrl(img))
     if (uploaded.length >= 2) return uploaded.slice(0, 5)
     return HERO_IMAGES
   }, [gallery, uploadsBase])
@@ -270,7 +299,7 @@ ${message ? `\nMessage: ${message}` : ''}`
         <div className="sa2-nav-inner">
           <div className="sa2-nav-logo" onClick={() => scrollTo('home')}>
             {data.logo ? (
-              <img src={`${uploadsBase}${data.logo}`} alt={salon} className="sa2-nav-logo-img" />
+              <img src={getImgUrl((data.logo))} alt={salon} className="sa2-nav-logo-img" />
             ) : (
               <span className="sa2-nav-logo-mark">{initials}</span>
             )}
@@ -492,7 +521,7 @@ ${message ? `\nMessage: ${message}` : ''}`
               <div className="sa2-about-collage reveal">
                 <div className="sa2-about-img-main">
                   {gallery[0] ? (
-                    <img src={`${uploadsBase}${gallery[0]}`} alt="Salon" />
+                    <img src={getImgUrl((gallery[0]))} alt="Salon" />
                   ) : (
                     <div className="sa2-about-img-fallback">
                       <IconScissors size={60} />
@@ -501,7 +530,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                 </div>
                 <div className="sa2-about-img-overlap">
                   {gallery[1] ? (
-                    <img src={`${uploadsBase}${gallery[1]}`} alt="Salon" />
+                    <img src={getImgUrl((gallery[1]))} alt="Salon" />
                   ) : (
                     <div className="sa2-about-img-fallback sa2-about-img-fallback-2">
                       <IconFlower size={40} />
@@ -699,7 +728,7 @@ ${message ? `\nMessage: ${message}` : ''}`
                 return (
                   <div key={i} className={`sa2-gallery-cell ${sizeClass} reveal`}
                     style={{ transitionDelay: `${i * 40}ms` }}>
-                    <img src={`${uploadsBase}${url}`} alt={`Gallery ${i + 1}`} />
+                    <img src={getImgUrl((url))} alt={`Gallery ${i + 1}`} />
                     <div className="sa2-gallery-overlay">
                       <IconSparkle size={22} />
                     </div>
