@@ -142,7 +142,7 @@ export default function WebsiteForm() {
           pricing_plan_id: user?.preferred_plan?.id || null,
           form_data: dataToSave,
         })
-        const newId = res.data?.data?.website?.id
+        const newId = res.data?.data?.website?.id || res.data?.data?.website?._id
         
         if (!newId) {
             notify.error("Website ID missing")
