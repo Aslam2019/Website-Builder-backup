@@ -77,41 +77,60 @@ export default function Checkout() {
     setPayModal(true)
   }
 
-  const confirmPay = async () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const websiteId = searchParams.get('id'); // ✅ URL la irundhu edukkanum
-    if (!websiteId) {
-      notify.error('Please complete the website form first')
-      setPayModal(false)
-      navigate('/dashboard/website-form')
-      return
+    const confirmPay = async () => {
+    setProcessing(true);
+    
+    // 1. Mudhalla URL la irundhu ID ah thedum
+    let currentWebsiteId = new URLSearchParams(window.location.search).get('id');
+
+    // 2. URL la ID illana, backend la irundhu user oda latest website ah edukkum
+    if (!currentWebsiteId) {
+      try {
+        const res = await websiteApi.list();
+        const existing = res?.data?.data?.websites?.[0];
+        if (existing) {
+          currentWebsiteId = existing._id || existing.id;
+        }
+      } catch (e) {
+        console.error("Error fetching website:", e);
+      }
     }
+
+    // 3. Rendumey kidaikala na, appo thaan error kaattum
+    if (!currentWebsiteId) {
+      notify.error('Please complete the website form first');
+      setPayModal(false);
+      navigate('/dashboard/website-form');
+      setProcessing(false);
+      return;
+    }
+
     if (!plan) {
-      notify.error('Plan missing')
-      return
+      notify.error('Plan missing');
+      setProcessing(false);
+      return;
     }
 
-    setPayStep('processing')
-    setProcessing(true)
+    setPayStep('processing');
     try {
-      await new Promise((r) => setTimeout(r, 1400))
-
+      await new Promise((r) => setTimeout(r, 1400));
+      
+      // ✅ Ippo correct aana ID ah use pandrom
       await paymentApi.dummyPay({
         user_id: user?.id || user?._id,
-        website_id: websiteId,
-        plan_id: plan._id || plan.id,
-      })
-
-      setPayStep('success')
-      notify.success('Payment successful! Website published.')
-    } catch (e) {
-      setPayStep('confirm')
-      notify.error(e?.response?.data?.message || 'Payment failed')
-    } finally {
-      setProcessing(false)
+        website_id: currentWebsiteId, 
+        plan_id: plan?.id || plan?._id,
+        amount: plan?.price
+      });
+      
+      notify.success('Payment successful!');
+      navigate('/dashboard/my-website');
+    } catch (err) {
+      notify.error(err?.response?.data?.message || 'Payment failed');
+      setProcessing(false);
+      setPayModal(false);
     }
-  }
-
+  };
   const finish = () => {
     setPayModal(false)
     navigate('/dashboard/my-website')
