@@ -77,13 +77,13 @@ export default function Checkout() {
     setPayModal(true)
   }
 
-    const confirmPay = async () => {
+  const confirmPay = async () => {
     setProcessing(true);
     
-    // 1. Mudhalla URL la irundhu ID ah thedum
+    // ✅ 1. URL la irundhu ID ah thedum
     let currentWebsiteId = new URLSearchParams(window.location.search).get('id');
 
-    // 2. URL la ID illana, backend la irundhu user oda latest website ah edukkum
+    // ✅ 2. URL la ID illana, backend la irundhu edukkum (Fallback)
     if (!currentWebsiteId) {
       try {
         const res = await websiteApi.list();
@@ -96,7 +96,7 @@ export default function Checkout() {
       }
     }
 
-    // 3. Rendumey kidaikala na, appo thaan error kaattum
+    // ✅ 3. Rendumey kidaikala na error
     if (!currentWebsiteId) {
       notify.error('Please complete the website form first');
       setPayModal(false);
@@ -115,10 +115,9 @@ export default function Checkout() {
     try {
       await new Promise((r) => setTimeout(r, 1400));
       
-      // ✅ Ippo correct aana ID ah use pandrom
       await paymentApi.dummyPay({
         user_id: user?.id || user?._id,
-        website_id: currentWebsiteId, 
+        website_id: currentWebsiteId, // ✅ Ippo correct ID poagum
         plan_id: plan?.id || plan?._id,
         amount: plan?.price
       });
