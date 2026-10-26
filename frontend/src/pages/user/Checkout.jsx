@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useNotify } from '../../context/NotificationContext'
 import { pricingApi } from '../../api/pricingApi'
@@ -17,6 +17,8 @@ export default function Checkout() {
   const notify = useNotify()
   const navigate = useNavigate()
 
+  const [searchParams] = useSearchParams()
+  const websiteId = searchParams.get('id') // ✅ URL la irundhu ID ah edukkurom
   const [plan, setPlan] = useState(null)          // ✅ ONLY user's plan
   const [loading, setLoading] = useState(true)
   const [payModal, setPayModal] = useState(false)
@@ -76,7 +78,8 @@ export default function Checkout() {
   }
 
   const confirmPay = async () => {
-    const websiteId = localStorage.getItem(WEBSITE_ID_KEY)
+    const searchParams = new URLSearchParams(window.location.search);
+    const websiteId = searchParams.get('id'); // ✅ URL la irundhu edukkanum
     if (!websiteId) {
       notify.error('Please complete the website form first')
       setPayModal(false)
