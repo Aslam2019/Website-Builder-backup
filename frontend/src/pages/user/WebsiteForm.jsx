@@ -160,11 +160,16 @@ export default function WebsiteForm() {
           pricing_plan_id: user?.preferred_plan?.id || null,
           form_data: dataToSave,
         })
-        const newId = res.data?.data?.website?.id
-        if (newId) localStorage.setItem(WEBSITE_ID_KEY, newId)
+                const newId = res.data?.data?.website?.id
+        
+        // ✅ 1. localStorage la ID save panradha remove pannunga
+        // if (newId) localStorage.setItem(WEBSITE_ID_KEY, newId) 
+        
         localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave))
         notify.success('Form saved! Proceed to payment.')
-        navigate('/dashboard/checkout')
+        
+        // ✅ 2. URL la 'id' ah anuppunga
+        navigate(`/dashboard/checkout?id=${newId}`)
       }
     } catch (e) {
       notify.error(e?.response?.data?.message || 'Save failed')
