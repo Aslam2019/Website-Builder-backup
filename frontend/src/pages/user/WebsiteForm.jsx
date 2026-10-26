@@ -263,6 +263,18 @@ export default function WebsiteForm() {
           </div>
           <ViewSummary data={formData} />
         </div>
+        {/* ✅ Ithu dhaan pudhu button (ID oda checkout ku anuppum) */}
+          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+            <button 
+              className="btn btn-primary btn-lg" 
+              onClick={() => navigate(`/dashboard/checkout?id=${existingWebsiteId}`)}
+            >
+              Proceed to Payment
+            </button>
+          </div>
+
+          <ViewSummary data={formData} />
+        </div>
       ) : (
         <>
           <Component data={formData} onChange={setFormData} />
