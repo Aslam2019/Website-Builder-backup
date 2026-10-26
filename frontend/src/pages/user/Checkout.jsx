@@ -9,7 +9,6 @@ import Loader from '../../components/common/Loader'
 import Modal from '../../components/common/Modal'
 import { IconCheck, IconShield, IconRocket } from '../../components/dashboard/Icons'
 
-const WEBSITE_ID_KEY = 'wb_website_id'
 const TEMPLATE_KEY = 'wb_selected_template'
 
 export default function Checkout() {
@@ -18,24 +17,16 @@ export default function Checkout() {
   const navigate = useNavigate()
 
   const [searchParams] = useSearchParams()
-  const websiteId = searchParams.get('id') // ✅ URL la irundhu ID ah edukkurom
-  const [plan, setPlan] = useState(null)          // ✅ ONLY user's plan
+  const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [payModal, setPayModal] = useState(false)
   const [payStep, setPayStep] = useState('confirm')
   const [processing, setProcessing] = useState(false)
 
-  /* ============================================================
-     ✅ Fetch ONLY the user's preferred plan (locked)
-     ============================================================ */
   useEffect(() => {
     (async () => {
       try {
-        const preferredId =
-          user?.preferred_plan?.id ||
-          user?.preferred_plan?._id ||
-          user?.preferred_plan_id
-
+        const preferredId = user?.preferred_plan?.id || user?.preferred_plan?._id || user?.preferred_plan_id
         if (!preferredId) {
           notify.error('No plan selected. Please contact support.')
           setLoading(false)
@@ -47,7 +38,6 @@ export default function Checkout() {
         const found = allPlans.find((p) => (p._id || p.id) === preferredId)
 
         if (!found) {
-          // Fetch single plan fallback
           try {
             const single = await pricingApi.get(preferredId)
             const p = single.data?.data?.plan
@@ -81,7 +71,7 @@ export default function Checkout() {
     setProcessing(true);
     
     // ✅ 1. URL la irundhu ID ah thedum
-    let currentWebsiteId = new URLSearchParams(window.location.search).get('id');
+    let currentWebsiteId = searchParams.get('id');
 
     // ✅ 2. URL la ID illana, backend la irundhu edukkum (Fallback)
     if (!currentWebsiteId) {
@@ -117,19 +107,20 @@ export default function Checkout() {
       
       await paymentApi.dummyPay({
         user_id: user?.id || user?._id,
-        website_id: currentWebsiteId, // ✅ Ippo correct ID poagum
+        website_id: currentWebsiteId, 
         plan_id: plan?.id || plan?._id,
         amount: plan?.price
       });
       
-      notify.success('Payment successful!');
-      navigate('/dashboard/my-website');
+      // ✅ Success screen ah kaattuvom (Direct ah navigate panna koodadhu)
+      setPayStep('success');
     } catch (err) {
       notify.error(err?.response?.data?.message || 'Payment failed');
       setProcessing(false);
       setPayModal(false);
     }
   };
+
   const finish = () => {
     setPayModal(false)
     navigate('/dashboard/my-website')
@@ -168,7 +159,6 @@ export default function Checkout() {
       </div>
 
       <div className="checkout-grid">
-        {/* LEFT: Locked plan display */}
         <div>
           <div className="card" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -219,7 +209,6 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* RIGHT: Summary */}
         <div>
           <div className="card" style={{ position: 'sticky', top: 20 }}>
             <h3 className="card-title">Order Summary</h3>
@@ -251,9 +240,7 @@ export default function Checkout() {
         </div>
       </div>
 
-      {/* ---- GPay-style Payment Modal ---- */}
-      <Modal open={payModal} onClose={() => !processing && payStep !== 'success' && setPayModal(false)}
-        title={null} footer={null}>
+      <Modal open={payModal} onClose={() => !processing && payStep !== 'success' && setPayModal(false)} title={null} footer={null}>
         <div className="gpay-modal">
           {payStep === 'confirm' && (
             <>
@@ -338,7 +325,6 @@ export default function Checkout() {
         </div>
       </Modal>
 
-      {/* Lock styles */}
       <style>{`
         .lock-badge {
           display: inline-flex;
