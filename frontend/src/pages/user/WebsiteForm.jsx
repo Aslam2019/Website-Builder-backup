@@ -5,7 +5,7 @@ import { useNotify } from '../../context/NotificationContext'
 import { websiteApi } from '../../api/websiteApi'
 import axiosClient from '../../api/axiosClient'
 import Loader from '../../components/common/Loader'
-import { IconEdit, IconRocket, IconForm } from '../../components/dashboard/Icons'
+import { IconEdit, IconRocket } from '../../components/dashboard/Icons'
 
 import PortfolioForm from '../../components/forms/PortfolioForm'
 import RealEstateForm from '../../components/forms/RealEstateForm'
@@ -41,16 +41,13 @@ export default function WebsiteForm() {
   const [mode, setMode] = useState('edit')
   const [saving, setSaving] = useState(false)
 
-  // ✅ Fresh plan flags from backend
   const [whatsappEnabled, setWhatsappEnabled] = useState(false)
   const [planFlagsLoading, setPlanFlagsLoading] = useState(true)
 
   const slug = user?.category?.slug
   const entry = FORM_MAP[slug]
-
   const DRAFT_KEY = slug ? `wb_form_draft_${slug}` : 'wb_form_draft'
 
-  /* Load existing website / draft */
   useEffect(() => {
     (async () => {
       try {
@@ -58,7 +55,6 @@ export default function WebsiteForm() {
         const existing = res?.data?.data?.websites?.[0]
         if (existing) {
           setExistingWebsiteId(existing._id || existing.id)
-          localStorage.setItem(WEBSITE_ID_KEY, existing._id || existing.id)
           setFormData(existing.form_data || {})
           setMode('view')
           return
@@ -75,20 +71,15 @@ export default function WebsiteForm() {
     })()
   }, [DRAFT_KEY])
 
-  /* ✅ Fetch FRESH plan flags from backend on mount */
   useEffect(() => {
     const loadPlanFlags = async () => {
-      // Admin — full access
       if (user?.role === 'super_admin' || user?.role === 'admin') {
         setWhatsappEnabled(true)
         setPlanFlagsLoading(false)
         return
       }
 
-      const planId =
-        user?.preferred_plan?.id ||
-        user?.preferred_plan?._id ||
-        user?.preferred_plan_id
+      const planId = user?.preferred_plan?.id || user?.preferred_plan?._id || user?.preferred_plan_id
 
       if (!planId) {
         setWhatsappEnabled(false)
@@ -97,30 +88,22 @@ export default function WebsiteForm() {
       }
 
       try {
-        // 🔥 Fetch fresh plan from backend
         const res = await axiosClient.get(`/pricing/${planId}`)
         const plan = res?.data?.data?.plan || res?.data?.plan
         const flags = plan?.feature_flags || {}
-
         setWhatsappEnabled(!!flags.whatsapp_button)
-        console.log('[Form Plan Flags] fresh:', flags)
       } catch (e) {
-        console.warn('[Form Plan Flags] fetch failed:', e?.response?.status)
-        // Fallback to cached
         const cached = user?.preferred_plan?.feature_flags || {}
         setWhatsappEnabled(!!cached.whatsapp_button)
       } finally {
         setPlanFlagsLoading(false)
       }
     }
-
     loadPlanFlags()
   }, [user])
 
   const selectedTemplate = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(TEMPLATE_KEY) || 'null')
-    } catch { return null }
+    try { return JSON.parse(localStorage.getItem(TEMPLATE_KEY) || 'null') } catch { return null }
   })()
 
   const saveDraft = () => {
@@ -134,7 +117,6 @@ export default function WebsiteForm() {
       return
     }
 
-    // 🔒 Strip WhatsApp field if plan doesn't allow it
     let dataToSave = { ...formData }
     if (!whatsappEnabled) {
       delete dataToSave.whatsapp
@@ -169,7 +151,7 @@ export default function WebsiteForm() {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave))
         notify.success('Form saved! Proceed to payment.')
         
-        // ✅ 2. URL la 'id' ah anuppunga
+        // ✅ URL la correct ah ID ah anuppurom (Backticks la irukkanum)
         navigate(`/dashboard/checkout?id=${newId}`)
       }
     } catch (e) {
@@ -219,7 +201,6 @@ export default function WebsiteForm() {
         )}
       </div>
 
-      {/* 🔒 WhatsApp Lock Notice */}
       {mode === 'edit' && !whatsappEnabled && (
         <div className="plan-lock-notice">
           <div className="plan-lock-icon">
@@ -238,11 +219,7 @@ export default function WebsiteForm() {
               website. Let customers reach you instantly.
             </div>
           </div>
-          <button
-            type="button"
-            className="plan-lock-btn"
-            onClick={() => navigate('/#pricing')}
-          >
+          <button type="button" className="plan-lock-btn" onClick={() => navigate('/#pricing')}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
@@ -262,10 +239,11 @@ export default function WebsiteForm() {
               </p>
             </div>
           </div>
+          
           <ViewSummary data={formData} />
-        </div>
-        {/* ✅ Ithu dhaan pudhu button (ID oda checkout ku anuppum) */}
-          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+
+          {/* ✅ Ithu dhaan pudhu button (ID oda checkout ku anuppum) */}
+          <div style={{ padding: '20px 0', textAlign: 'center', borderTop: '1px solid #f1f5f9', marginTop: '20px' }}>
             <button 
               className="btn btn-primary btn-lg" 
               onClick={() => navigate(`/dashboard/checkout?id=${existingWebsiteId}`)}
@@ -273,8 +251,6 @@ export default function WebsiteForm() {
               Proceed to Payment
             </button>
           </div>
-
-          <ViewSummary data={formData} />
         </div>
       ) : (
         <>
@@ -302,7 +278,6 @@ export default function WebsiteForm() {
         </>
       )}
 
-      {/* Plan lock styles */}
       <style>{`
         .plan-lock-notice {
           display: flex;
