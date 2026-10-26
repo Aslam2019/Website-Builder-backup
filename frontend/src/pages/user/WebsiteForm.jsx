@@ -161,10 +161,10 @@ export default function WebsiteForm() {
           form_data: dataToSave,
         })
         const newId = res.data?.data?.website?.id
-        
-        // ✅ 1. localStorage la ID save panradha remove pannunga
-        // if (newId) localStorage.setItem(WEBSITE_ID_KEY, newId) 
-        
+        if (!newId) {
+            notify.error("Website ID missing")
+            return
+        }
         localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave))
         notify.success('Form saved! Proceed to payment.')
         
