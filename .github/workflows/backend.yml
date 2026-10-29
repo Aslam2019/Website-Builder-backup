@@ -2,7 +2,7 @@ name: Deploy Backend to EC2
 
 on:
   push:
-    branches: [ "main" ] # Unga main branch name. Illa "feature/normal-changes" nu podunga
+    branches: ["main", "feature/normal-changes"] # Unga main branch name. Illa "feature/normal-changes" nu podunga
     paths:
       - 'backend/**'
 
