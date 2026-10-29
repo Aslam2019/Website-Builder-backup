@@ -2,7 +2,7 @@ name: Deploy Frontend to Amplify
 
 on:
   push:
-    branches: ["main", "feature/normal-changes" ]
+    branches: [ "main", "feature/normal-changes" ]
     paths:
       - 'frontend/**'
 
