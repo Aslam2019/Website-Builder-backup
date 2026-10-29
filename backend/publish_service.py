@@ -49,7 +49,7 @@ def trigger_publish(website_id, user_id, username, template_name, html_content):
                 aws_secret_access_key=AWS_SECRET_KEY
             )
             cf.create_invalidation(
-                DistributionId='E1HOJ6B5DZ4I34', # Unga CloudFront ID
+                DistributionId='E1H0J6B5DZ4I34', # Unga CloudFront ID
                 InvalidationBatch={
                     'Paths': {'Quantity': 1, 'Items': [f'/{username}/*']},
                     'CallerReference': str(time.time())
