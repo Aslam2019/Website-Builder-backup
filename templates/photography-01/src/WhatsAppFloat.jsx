@@ -1,4 +1,32 @@
-import { buildWhatsAppLink } from '../../utils/whatsapp'
+// import { buildWhatsAppLink } from '../../utils/whatsapp'
+
+// export default function WhatsAppFloat({ number, name = 'me' }) {
+//   const link = buildWhatsAppLink(
+//     number,
+//     `Hi, I found your website and I'd like to get in touch!`
+//   )
+//   if (!link) return null
+
+//   return (
+//     <a
+//       href={link}
+//       target="_blank"
+//       rel="noreferrer"
+//       className="wa-float"
+//       aria-label="Chat on WhatsApp"
+//       title="Chat with us on WhatsApp"
+//     >
+//       <span className="wa-float-pulse" />
+//       <svg viewBox="0 0 32 32" width="30" height="30" fill="white" aria-hidden="true">
+//         <path d="M16 .396C7.163.396 0 7.559 0 16.396c0 2.884.756 5.592 2.078 7.938L.06 31.94l7.775-2.036a15.94 15.94 0 0 0 8.165 2.244h.001c8.837 0 16-7.163 16-16S24.837.396 16 .396Zm0 29.232h-.001a13.24 13.24 0 0 1-6.75-1.85l-.485-.288-5.011 1.313 1.339-4.884-.316-.5a13.223 13.223 0 0 1-2.03-7.023c0-7.302 5.943-13.244 13.256-13.244 3.539 0 6.866 1.381 9.366 3.885a13.16 13.16 0 0 1 3.879 9.37c-.004 7.302-5.947 13.221-13.247 13.221Zm7.27-9.899c-.398-.199-2.353-1.16-2.717-1.294-.365-.132-.63-.198-.896.2-.265.398-1.027 1.294-1.259 1.559-.233.266-.465.299-.863.1-.398-.2-1.68-.62-3.2-1.977-1.183-1.055-1.98-2.358-2.213-2.756-.232-.398-.025-.613.174-.811.18-.178.398-.465.597-.697.199-.233.265-.399.398-.664.132-.266.066-.498-.034-.697-.1-.199-.896-2.16-1.228-2.957-.323-.777-.652-.671-.896-.683-.232-.011-.498-.014-.763-.014a1.47 1.47 0 0 0-1.06.498c-.365.398-1.395 1.36-1.395 3.322 0 1.961 1.428 3.857 1.627 4.122.199.266 2.808 4.287 6.806 6.015.951.411 1.694.656 2.272.839.955.304 1.824.261 2.512.158.767-.114 2.353-.963 2.685-1.892.332-.93.332-1.726.232-1.892-.099-.166-.365-.266-.763-.465Z" />
+//       </svg>
+//     </a>
+//   )
+// }
+
+
+
+import { buildWhatsAppLink } from './utils/whatsapp'; // ✅ Path change panniruken
 
 export default function WhatsAppFloat({ number, name = 'me' }) {
   const link = buildWhatsAppLink(

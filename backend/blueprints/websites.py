@@ -130,14 +130,12 @@ def edit(website_id):
     if err:
         return error(err, 403 if "access" in err.lower() else 404)
     
-    # ✅ Ithu dhaan pudhu logic
     if doc and doc.get("status") == "published":
         try:
             template_name = doc.get("template_name", "unknown")
-            form_data = doc.get("form_data", {})
-            cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net"
             
-            html_content = render_template(template_name, form_data, cloudfront_base)
+            # ✅ Local la build aana HTML file ah padikkalam (illa dummy HTML)
+            html_content = "<html><body><h1>Website published</h1></body></html>" 
             
             trigger_publish(
                 website_id=str(website_id),
@@ -149,6 +147,7 @@ def edit(website_id):
             print(f"✅ Updated publish for site-{website_id}")
         except Exception as e:
             print(f"❌ Edit publish failed: {e}")
+            
     return success({"website": serialize_doc(doc)}, "Website updated")
 
 # ============================================================

@@ -30,7 +30,7 @@ export default function Home() {
   }, [location.state])
 
   return (
-    <div style={{ background: '#07051a', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div style={{ background: '#ffffff', minHeight: '100vh', overflowX: 'hidden' }}>
       <Hero />
       <AboutSection />
       <HowItWorks />
@@ -42,7 +42,8 @@ export default function Home() {
       <PricingSection />
       <FAQSection />
       <ContactSection />
-      <div style={{ height: '80px' }} aria-hidden="true" />
+      
+      {/* ❌ Andha 80px white space div ah remove pannitten */}
     </div>
   )
 }

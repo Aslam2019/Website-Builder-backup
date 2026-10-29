@@ -404,8 +404,8 @@
    ============================================================ */
 .ed-hero {
   position: relative;
-  min-height: 100vh;
-  padding: 120px 32px 60px;
+  min-height: auto; /* ✅ Ithu dhaan main fix (Keela irundhadhu) */
+  padding: 160px 32px 80px; /* ✅ Top padding increase panniruken */
   background: var(--ed-bg);
   overflow: hidden;
 }
@@ -542,6 +542,8 @@
   flex-wrap: wrap;
   margin-bottom: 48px;
 }
+
+/* ✅ BUTTON FIX: Text visibility */
 .ed-btn {
   display: inline-flex;
   align-items: center;
@@ -788,7 +790,7 @@
   .ed-hero-float-card.fc2 { right: 10px; top: -20px; }
 }
 @media (max-width: 768px) {
-  .ed-hero { padding: 100px 20px 40px; }
+  .ed-hero { padding: 120px 20px 40px; } /* ✅ Mobile padding fix */
   .ed-hero-top { font-size: 10px; padding: 10px 0 20px; }
   .ed-hero-title { font-size: clamp(34px, 8vw, 52px); }
   .ed-hero-desc { font-size: 15px; }
@@ -798,6 +800,8 @@
   .ed-hero-stat-num { font-size: 26px; }
   .ed-hero-float-card { min-width: 150px; padding: 10px 12px; font-size: 11px; }
 }
+
+/* ... Matha sections (About, Courses, Features etc) unga pazhaya code la irundha maariye vachukonga ... */
 
 /* ============================================================
    SECTIONS COMMON

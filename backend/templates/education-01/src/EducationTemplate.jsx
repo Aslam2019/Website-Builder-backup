@@ -282,7 +282,6 @@ export default function EducationTemplate({ data, website }) {
     return () => window.removeEventListener('keydown', onEsc)
   }, [lightbox])
 
-  // ✅ FIXED: Native scrollIntoView (Perfect Section Landing)
   const scrollTo = (id) => {
     const el = document.getElementById(id)
     if (el) {
@@ -298,7 +297,6 @@ export default function EducationTemplate({ data, website }) {
     `Hi ${institute}, I'd like to enquire about your courses.`
   )
 
-  // ✅ Static Nav Links
   const navLinks = [
     { id: 'home', label: 'Home' },
     { id: 'about', label: 'About' },
@@ -310,7 +308,6 @@ export default function EducationTemplate({ data, website }) {
     { id: 'contact', label: 'Contact' },
   ]
 
-  // ✅ Static Socials
   const socials = [
     { url: data.social_instagram || '#', Icon: IconInstagram, label: 'Instagram' },
     { url: data.social_facebook || '#', Icon: IconFacebook, label: 'Facebook' },
@@ -453,12 +450,13 @@ ${message ? `\nMessage: ${message}` : ''}`
                   : 'Learn from industry veterans, build real products, and get placed at top companies.'}
               </p>
 
+              {/* ✅ FIXED: Buttons color and text visibility */}
               <div className="ed-hero-actions ed-anim-fadeup" style={{ animationDelay: '0.9s' }}>
-                <button className="ed-btn ed-btn-primary" onClick={() => scrollTo('courses')}>
+                <button className="ed-btn ed-btn-primary" onClick={() => scrollTo('courses')} style={{ background: '#0f172a', color: '#ffffff', border: 'none' }}>
                   Explore Courses <IconArrow size={15} />
                 </button>
                 {waLink && (
-                  <a href={waLink} target="_blank" rel="noreferrer" className="ed-btn ed-btn-ghost">
+                  <a href={waLink} target="_blank" rel="noreferrer" className="ed-btn ed-btn-ghost" style={{ background: '#ffffff', color: '#0f172a', border: '1px solid #e2e8f0' }}>
                     <IconWhatsApp size={15} /> Talk to Counsellor
                   </a>
                 )}

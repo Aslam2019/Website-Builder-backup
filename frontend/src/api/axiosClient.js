@@ -1,13 +1,11 @@
-
-
-
-
 import axios from 'axios'
 
 // ✅ Vite env variable — .env la VITE_API_URL set pannunga
-const API_BASE = "https://api.nqube.in/api";
-const UPLOADS_BASE = "https://api.nqube.in";
+// const API_BASE = "https://api.nqube.in/api";
+// const UPLOADS_BASE = "https://api.nqube.in";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const UPLOADS_BASE = import.meta.env.VITE_UPLOADS_BASE_URL || "http://localhost:5000";
 const axiosClient = axios.create({
   baseURL: API_BASE,
   headers: {

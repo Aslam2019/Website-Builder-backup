@@ -14,7 +14,6 @@ import EducationTemplate from '../../components/generated/templates/EducationTem
 import MedicalTemplate from '../../components/generated/templates/MedicalTemplate'
 import GymTemplate from '../../components/generated/templates/GymTemplate'
 
-
 import '../../components/generated/templates/portfolio.css'
 import '../../components/generated/templates/realestate.css'
 import '../../components/generated/templates/salon.css'
@@ -89,9 +88,9 @@ export default function GeneratedWebsite() {
 
   const d = website.form_data || {}
 
-  // Show WhatsApp only if plan allows
-  const showWhatsapp = planFeatures.whatsapp_button === true && !!d.whatsapp
-
+  // ✅ Show WhatsApp if plan allows AND (whatsapp number OR phone exists)
+  const showWhatsapp = planFeatures.whatsapp_button === true && (d.whatsapp || d.phone)
+  
   // ✅ Show ads only if plan allows
   const showAds = planFeatures.ads_enabled === true
 
@@ -146,7 +145,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <PortfolioTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.full_name || 'me'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.full_name || 'me'} />
         )}
       </>
     )
@@ -159,7 +158,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <RealEstateTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.company_name || 'us'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.company_name || 'us'} />
         )}
       </>
     )
@@ -172,7 +171,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <SalonTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.salon_name || 'us'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.salon_name || 'us'} />
         )}
       </>
     )
@@ -183,10 +182,11 @@ export default function GeneratedWebsite() {
     return (
       <>
         {renderBanners()}
-        <PhotographyTemplate data={d} website={website} />
+        {/* ✅ Pass planFeatures & showWhatsapp to template */}
+        <PhotographyTemplate data={d} website={website} showWhatsapp={showWhatsapp} />
         {showWhatsapp && (
           <WhatsAppFloat
-            number={d.whatsapp}
+            number={d.whatsapp || d.phone}
             name={d.studio_name || d.photographer_name || 'us'}
           />
         )}
@@ -201,7 +201,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <EducationTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.institute_name || 'us'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.institute_name || 'us'} />
         )}
       </>
     )
@@ -214,7 +214,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <MedicalTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.clinic_name || 'us'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.clinic_name || 'us'} />
         )}
       </>
     )
@@ -227,7 +227,7 @@ export default function GeneratedWebsite() {
         {renderBanners()}
         <GymTemplate data={d} website={website} />
         {showWhatsapp && (
-          <WhatsAppFloat number={d.whatsapp} name={d.gym_name || 'us'} />
+          <WhatsAppFloat number={d.whatsapp || d.phone} name={d.gym_name || 'us'} />
         )}
       </>
     )
@@ -280,7 +280,7 @@ export default function GeneratedWebsite() {
         )}
       </div>
 
-      {showWhatsapp && <WhatsAppFloat number={d.whatsapp} name={ownerName} />}
+      {showWhatsapp && <WhatsAppFloat number={d.whatsapp || d.phone} name={ownerName} />}
       <SiteFooter ownerName={ownerName} />
     </div>
   )

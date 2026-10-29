@@ -14,8 +14,8 @@ const heading = {
   letterSpacing: '-0.04em',
 }
 
-// Use same base URL as your axiosClient
-const API_BASE = import.meta.env.VITE_API_URL || 'https://98.130.23.135'
+// ✅ Correct API Base URL (supports localhost & live)
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://api.nqube.in/api'
 
 export default function Terms() {
   const { slug } = useParams()
@@ -28,6 +28,7 @@ export default function Terms() {
     setLoading(true)
     setError('')
 
+    // ✅ Fixed URL construction
     fetch(`${API_BASE}/settings/terms/${slug}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
