@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import axiosClient from '../../api/axiosClient'
 
-/* ✅ Build full URL for images */
 const getFullUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('data:')) return url
@@ -45,21 +44,26 @@ const COLUMNS = [
     links: [
       ['/login', 'Login'],
       ['/register', 'Register'],
-      ['/dashboard', 'Dashboard'],
+      
     ],
   },
 ]
 
 export default function Footer() {
-  const [site, setSite] = useState({ logo_url: '', site_name: 'WebsiteBuilder' })
+  const [site, setSite] = useState({ logo_url: '', site_name: 'NQube' })
   const [terms, setTerms] = useState([])
   const year = new Date().getFullYear()
+
+  // Default footer content
+  const [content, setContent] = useState({
+    description: 'Create a professional website in minutes — no code, no hassle.'
+  })
 
   useEffect(() => {
     let mounted = true
 
     const fetchData = async () => {
-      // --- Site settings ---
+      // Fetch site settings
       try {
         const siteRes = await axiosClient.get('/settings/site')
         const siteData = siteRes?.data?.data
@@ -68,16 +72,22 @@ export default function Footer() {
         console.warn('Footer: site settings failed', e?.message)
       }
 
-      // --- Public terms ---
+      // Fetch frontend content
+      try {
+        const contentRes = await axiosClient.get('/settings/frontend')
+        const apiContent = contentRes?.data?.data?.content?.footer
+        if (mounted && apiContent) setContent(apiContent)
+      } catch (e) {
+        console.warn('Footer: content fetch failed', e?.message)
+      }
+
+      // Fetch terms
       try {
         const termsRes = await axiosClient.get('/settings/terms')
         const raw = termsRes?.data?.data
-
-        // Handle BOTH shapes: array OR { terms: [] }
         let list = []
         if (Array.isArray(raw)) list = raw
         else if (Array.isArray(raw?.terms)) list = raw.terms
-
         if (mounted) setTerms(list)
       } catch (e) {
         console.warn('Footer: terms failed', e?.message)
@@ -93,14 +103,8 @@ export default function Footer() {
     }
   }, [])
 
-  /* Brand name split */
-  const name = site.site_name || 'WebsiteBuilder'
-  const idx = name.lastIndexOf(' ')
-  const brandA = idx > 0 ? name.slice(0, idx + 1) : name.slice(0, Math.ceil(name.length / 2))
-  const brandB = idx > 0 ? name.slice(idx + 1) : name.slice(Math.ceil(name.length / 2))
-
-  /* Active terms only (safety — backend already filters) */
   const activeTerms = terms.filter((t) => t.is_active !== false)
+  const brandName = site.site_name || 'NQube'
 
   return (
     <footer className="ft" style={interStyle}>
@@ -110,24 +114,22 @@ export default function Footer() {
       </div>
 
       <div className="ft-wrap">
-
-        {/* ============ TOP GRID ============ */}
+        {/* TOP GRID */}
         <div className="ft-grid">
-
           {/* Brand */}
           <div className="ft-brand-col">
             <Link to="/" className="ft-brand">
               {site.logo_url ? (
                 <img src={getFullUrl(site.logo_url)} alt={site.site_name} className="ft-brand-logo" />
               ) : (
-                <span className="ft-brand-mark">WB</span>
+                <span className="ft-brand-mark">NQ</span>
               )}
               <span className="ft-brand-name">
-                {brandA}<span>{brandB}</span>
+                {brandName}
               </span>
             </Link>
             <p className="ft-brand-desc">
-              Create a professional website in minutes — no code, no hassle.
+              {content.description}
             </p>
           </div>
 
@@ -149,7 +151,7 @@ export default function Footer() {
             </div>
           ))}
 
-          {/* Legal — dynamic terms */}
+          {/* Legal */}
           <div className="ft-col">
             <h4 className="ft-col-title" style={heading}>Legal</h4>
             <ul className="ft-col-list">
@@ -168,14 +170,27 @@ export default function Footer() {
               )}
             </ul>
           </div>
-
         </div>
 
-        {/* ============ BOTTOM BAR — centered copyright ============ */}
+        {/* BOTTOM BAR */}
         <div className="ft-bottom">
-          <p className="ft-copy">
-            © {year} <strong>{site.site_name || 'WebsiteBuilder'}</strong>. All rights reserved.
-          </p>
+          <div className="ft-copy-wrap">
+            <span className="ft-copy-text">
+              © {year} <strong>{site.site_name || 'NQube'}</strong>. All rights reserved.
+            </span>
+            <span className="ft-copy-divider">|</span>
+            <span className="ft-copy-text">
+              Crafted by{' '}
+              <a 
+                href="https://qifawtechnologies.com/" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="ft-qifaw-link"
+              >
+                Qifaw Technologies
+              </a>
+            </span>
+          </div>
         </div>
 
       </div>
@@ -239,12 +254,19 @@ export default function Footer() {
           height: 40px; width: auto; max-width: 44px;
           object-fit: contain; display: block; flex-shrink: 0;
         }
+        
+        /* ✅ Brand Name with Gradient (Exact Navbar Style) */
         .ft-brand-name {
-          font-size: 20px; font-weight: 800;
-          color: #fff; letter-spacing: -0.03em;
+          font-size: 22px; 
+          font-weight: 800;
+          letter-spacing: -0.03em;
           white-space: nowrap;
+          background: linear-gradient(120deg, #6366f1 0%, #a855f7 60%, #d946ef 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
-        .ft-brand-name span { color: #a78bfa; }
+
         .ft-brand-desc {
           font-size: 14px; line-height: 1.65;
           color: #94a3b8; margin: 0;
@@ -278,21 +300,48 @@ export default function Footer() {
         }
         .ft-link-empty:hover { color: #475569; transform: none; }
 
-        /* BOTTOM BAR — centered */
+        /* BOTTOM BAR */
         .ft-bottom {
           display: flex;
           align-items: center;
           justify-content: center;
-          padding-top: 24px;
+          padding-top: 28px;
           text-align: center;
         }
-        .ft-copy {
+        .ft-copy-wrap {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.03);
+          padding: 8px 20px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .ft-copy-text {
           font-size: 13px;
           color: #64748b;
-          margin: 0;
           font-weight: 500;
         }
-        .ft-copy strong { color: #94a3b8; font-weight: 600; }
+        .ft-copy-text strong { color: #94a3b8; font-weight: 600; }
+        
+        .ft-copy-divider {
+          color: #475569;
+          font-size: 12px;
+        }
+
+        /* ✅ Qifaw Link Styling (Blue Color) */
+        .ft-qifaw-link {
+          color: #3b82f6;
+          font-weight: 600;
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+        .ft-qifaw-link:hover {
+          color: #60a5fa;
+          text-decoration: underline;
+        }
 
         /* ============================================================
            TABLET
@@ -322,7 +371,7 @@ export default function Footer() {
           }
           .ft-brand-col { grid-column: 1 / -1; }
           .ft-brand { margin-bottom: 12px; }
-          .ft-brand-name { font-size: 17px; }
+          .ft-brand-name { font-size: 19px; }
           .ft-brand-mark { width: 34px; height: 34px; font-size: 12px; }
           .ft-brand-logo { height: 34px; max-width: 38px; }
           .ft-brand-desc { font-size: 13px; line-height: 1.6; }
@@ -332,14 +381,17 @@ export default function Footer() {
           .ft-link { font-size: 13px; }
 
           .ft-bottom { padding-top: 20px; }
-          .ft-copy { font-size: 12px; line-height: 1.5; }
+          .ft-copy-wrap { padding: 8px 16px; gap: 8px; }
+          .ft-copy-text { font-size: 12px; }
         }
 
         @media (max-width: 380px) {
           .ft-grid { gap: 24px 14px; }
-          .ft-brand-name { font-size: 16px; }
+          .ft-brand-name { font-size: 18px; }
           .ft-link { font-size: 12.5px; }
-          .ft-copy { font-size: 11.5px; }
+          .ft-copy-text { font-size: 11.5px; }
+          .ft-copy-divider { display: none; }
+          .ft-copy-wrap { flex-direction: column; gap: 4px; padding: 10px 16px; border-radius: 12px; }
         }
 
         @media (prefers-reduced-motion: reduce) {

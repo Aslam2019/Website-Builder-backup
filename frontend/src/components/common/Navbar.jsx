@@ -10,15 +10,18 @@ const interStyle = {
   MozOsxFontSmoothing: 'grayscale',
 }
 
-/* ✅ Build full URL for images */
+/* ✅ Build full URL for images (FIXED) */
 const getFullUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('data:')) return url
-  const base = import.meta.env.VITE_API_URL?.replace('/api', '') || 'https://98.130.23.135'
-  return `${base}${url}`
+  
+  const base = import.meta.env.VITE_UPLOADS_BASE_URL 
+    || import.meta.env.VITE_API_URL?.replace('/api', '') 
+    || 'https://98.130.23.135'
+    
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
 }
 
-/* ✅ Navbar height constant */
 const NAVBAR_HEIGHT = 76
 
 /* ============================================================
@@ -108,7 +111,17 @@ export default function Navbar() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState('home')
-  const [site, setSite] = useState({ logo_url: '', site_name: '' })
+  
+  // ✅ LocalStorage la irundhu udane data eduthu vachukalam (Flicker fix)
+  const [site, setSite] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wb_site_settings')
+      return cached ? JSON.parse(cached) : { logo_url: '', site_name: '' }
+    } catch {
+      return { logo_url: '', site_name: '' }
+    }
+  })
+  
   const { isAuthenticated, isAdmin, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -121,7 +134,11 @@ export default function Navbar() {
       adminApi.getSiteSettings()
         .then((res) => {
           const data = res.data?.data
-          if (data) setSite(data)
+          if (data) {
+            setSite(data)
+            // ✅ Fetch aana data ah LocalStorage la save pandrom
+            localStorage.setItem('wb_site_settings', JSON.stringify(data))
+          }
         })
         .catch(() => {})
     }
@@ -159,9 +176,8 @@ export default function Navbar() {
     const el = document.getElementById(id)
     if (!el) return
 
-    // ✅ Manual scroll with proper offset (more reliable than scrollIntoView)
     const elementTop = el.getBoundingClientRect().top + window.pageYOffset
-    const offset = NAVBAR_HEIGHT + 10  // Navbar + breathing room
+    const offset = NAVBAR_HEIGHT + 10
 
     window.scrollTo({
       top: elementTop - offset,
@@ -407,26 +423,10 @@ export default function Navbar() {
       </aside>
 
       <style>{`
-        /* ============================================================
-           ✅ GLOBAL — Body padding for fixed navbar
-           ============================================================ */
-        html {
-          scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
+        body { padding-top: ${NAVBAR_HEIGHT}px; }
+        section[id] { scroll-margin-top: ${NAVBAR_HEIGHT}px; }
 
-        /* ✅ Fixed navbar means body needs padding-top */
-        body {
-          padding-top: ${NAVBAR_HEIGHT}px;
-        }
-
-        /* ✅ Sections need scroll-margin for scrollIntoView */
-        section[id] {
-          scroll-margin-top: ${NAVBAR_HEIGHT}px;
-        }
-
-        /* ============================================================
-           ✅ NAVBAR — FIXED (always visible at top)
-           ============================================================ */
         .site-nav {
           position: fixed;
           top: 0;
@@ -454,9 +454,6 @@ export default function Navbar() {
           gap: 32px;
         }
 
-        /* ============================================================
-           BRAND
-           ============================================================ */
         .brand {
           text-decoration: none;
           display: inline-flex;
@@ -508,9 +505,6 @@ export default function Navbar() {
           background-clip: text;
         }
 
-        /* ============================================================
-           NAV LINKS
-           ============================================================ */
         .nav-links {
           display: flex;
           align-items: center;
@@ -553,9 +547,6 @@ export default function Navbar() {
         }
         .nav-link.active .nav-link-bar { width: 60%; }
 
-        /* ============================================================
-           ACTIONS
-           ============================================================ */
         .nav-actions {
           display: flex;
           align-items: center;
@@ -609,9 +600,6 @@ export default function Navbar() {
         .btn-primary svg { transition: transform 0.2s; }
         .btn-primary:hover svg { transform: translateX(2px); }
 
-        /* ============================================================
-           HAMBURGER
-           ============================================================ */
         .hamburger {
           display: none;
           width: 42px;
@@ -628,9 +616,6 @@ export default function Navbar() {
         }
         .hamburger:hover { background: #f1f5f9; }
 
-        /* ============================================================
-           OVERLAY
-           ============================================================ */
         .nav-overlay {
           position: fixed;
           inset: 0;
@@ -645,9 +630,6 @@ export default function Navbar() {
           to   { opacity: 1; }
         }
 
-        /* ============================================================
-           MOBILE DRAWER
-           ============================================================ */
         .mobile-drawer {
           position: fixed;
           top: 0;
@@ -802,9 +784,6 @@ export default function Navbar() {
           box-shadow: 0 14px 30px -10px rgba(99, 102, 241, 0.9);
         }
 
-        /* ============================================================
-           RESPONSIVE
-           ============================================================ */
         @media (max-width: 1100px) {
           .nav-inner { padding: 0 24px; gap: 20px; }
           .nav-link { padding: 10px 11px; font-size: 13.5px; }

@@ -13,6 +13,49 @@ const heading = {
   letterSpacing: '-0.035em',
 }
 
+// ✅ Number Counting Animation Component
+function AnimatedNumber({ value, suffix = '', duration = 2000 }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef(null)
+  const [started, setStarted] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started) {
+          setStarted(true)
+          
+          // Value la irundhu number ah mattum edukkanum (10K+ -> 10, 99.9% -> 99.9)
+          const numericValue = parseFloat(String(value).replace(/[^0-9.]/g, ''))
+          const isDecimal = String(value).includes('.')
+          const start = performance.now()
+
+          const tick = (now) => {
+            const p = Math.min((now - start) / duration, 1)
+            // Ease out cubic animation
+            const eased = 1 - Math.pow(1 - p, 3)
+            const current = eased * numericValue
+            
+            setCount(isDecimal ? current.toFixed(1) : Math.floor(current))
+            
+            if (p < 1) requestAnimationFrame(tick)
+            else setCount(isDecimal ? numericValue.toFixed(1) : numericValue)
+          }
+          requestAnimationFrame(tick)
+        }
+      },
+      { threshold: 0.4 }
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [value, duration, started])
+
+  return <span ref={ref}>{count}{suffix}</span>
+}
+
 const ITEMS = [
   {
     num: '01',
@@ -127,9 +170,7 @@ export default function WhyChooseUs() {
 
       <div className="wy-wrap">
 
-        {/* ============================================================
-            HEADER — Center
-            ============================================================ */}
+        {/* HEADER */}
         <header className="wy-head">
           <div className="wy-badge-row">
             <span className="wy-badge-line" />
@@ -151,9 +192,7 @@ export default function WhyChooseUs() {
           </p>
         </header>
 
-        {/* ============================================================
-            FEATURE GRID — 3 columns
-            ============================================================ */}
+        {/* FEATURE GRID */}
         <div className="wy-grid">
           {ITEMS.map((item, idx) => (
             <article
@@ -161,46 +200,45 @@ export default function WhyChooseUs() {
               className="wy-card"
               style={{ '--d': `${0.05 + idx * 0.06}s` }}
             >
-              {/* Top row: number + tag */}
               <div className="wy-card-top">
                 <span className="wy-card-num">{item.num}</span>
                 <span className="wy-card-tag">{item.tag}</span>
               </div>
 
-              {/* Icon */}
               <div className="wy-card-icon">{item.icon}</div>
 
-              {/* Title */}
               <h3 className="wy-card-title" style={heading}>
                 {item.title}
               </h3>
 
-              {/* Desc */}
               <p className="wy-card-desc">{item.desc}</p>
 
-              {/* Hover accent */}
               <div className="wy-card-accent" aria-hidden="true" />
               <div className="wy-card-glow" aria-hidden="true" />
             </article>
           ))}
         </div>
 
-        {/* ============================================================
-            BOTTOM STATS STRIP
-            ============================================================ */}
+        {/* BOTTOM STATS STRIP (Ippo Counting Animation Oda) */}
         <div className="wy-stats">
           <div className="wy-stat" style={{ '--d': '0.5s' }}>
-            <div className="wy-stat-val">10K+</div>
+            <div className="wy-stat-val">
+              <AnimatedNumber value="10K+" suffix="+" />
+            </div>
             <div className="wy-stat-label">Websites Built</div>
           </div>
           <div className="wy-stat-divider" />
           <div className="wy-stat" style={{ '--d': '0.58s' }}>
-            <div className="wy-stat-val">7+</div>
+            <div className="wy-stat-val">
+              <AnimatedNumber value="7+" suffix="+" />
+            </div>
             <div className="wy-stat-label">Industries</div>
           </div>
           <div className="wy-stat-divider" />
           <div className="wy-stat" style={{ '--d': '0.66s' }}>
-            <div className="wy-stat-val">99.9%</div>
+            <div className="wy-stat-val">
+              <AnimatedNumber value="99.9%" suffix="%" />
+            </div>
             <div className="wy-stat-label">Uptime</div>
           </div>
           <div className="wy-stat-divider" />
@@ -212,414 +250,85 @@ export default function WhyChooseUs() {
 
       </div>
 
-      {/* ============================================================
-          STYLES
-          ============================================================ */}
+      {/* STYLES */}
       <style>{`
-        /* ============ SECTION ============ */
-        .wy {
-          position: relative;
-          padding: 120px 0;
-          background: #ffffff;
-          color: #0a0f1e;
-          overflow: hidden;
-          isolation: isolate;
-        }
-
-        /* ============ BACKGROUND ============ */
+        .wy { position: relative; padding: 120px 0; background: #ffffff; color: #0a0f1e; overflow: hidden; isolation: isolate; }
         .wy-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
-
-        .wy-bg-grid {
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(99,102,241,0.045) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(99,102,241,0.045) 1px, transparent 1px);
-          background-size: 56px 56px;
-          mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 100%);
-          -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 100%);
-        }
-
-        .wy-bg-glow {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(140px);
-        }
-        .wy-bg-glow-1 {
-          width: 620px; height: 620px;
-          background: radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%);
-          top: -12%; left: -10%;
-        }
-        .wy-bg-glow-2 {
-          width: 640px; height: 640px;
-          background: radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%);
-          bottom: -15%; right: -12%;
-        }
-
-        .wy-wrap {
-          position: relative;
-          z-index: 1;
-          max-width: 1240px;
-          margin: 0 auto;
-          padding: 0 40px;
-        }
-
-        /* ============================================================
-           HEADER
-           ============================================================ */
-        .wy-head {
-          text-align: center;
-          max-width: 720px;
-          margin: 0 auto 76px;
-          opacity: 0;
-          transform: translateY(24px);
-          transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .wy.is-visible .wy-head {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .wy-badge-row {
-          display: inline-flex;
-          align-items: center;
-          gap: 14px;
-          margin-bottom: 20px;
-        }
-        .wy-badge-line {
-          display: inline-block;
-          width: 42px;
-          height: 1.5px;
-          background: linear-gradient(90deg, transparent, #c4b5fd, transparent);
-          border-radius: 999px;
-        }
-        .wy-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 6px 16px 6px 12px;
-          background: #f5f3ff;
-          border: 1px solid #e9d5ff;
-          border-radius: 999px;
-          font-size: 11.5px;
-          font-weight: 800;
-          color: #7c3aed;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-        }
-        .wy-badge-dot {
-          width: 6px;
-          height: 6px;
-          background: #7c3aed;
-          border-radius: 50%;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
-          animation: wyPulse 2s ease-in-out infinite;
-        }
-        @keyframes wyPulse {
-          0%, 100% { box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
-          50%      { box-shadow: 0 0 0 6px rgba(124,58,237,0.07); }
-        }
-
-        .wy-title {
-          font-size: 56px;
-          line-height: 1.06;
-          color: #0a0f1e;
-          margin: 0 0 18px;
-        }
-        .wy-title-accent {
-          background: linear-gradient(120deg, #7c3aed 0%, #a855f7 60%, #c084fc 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .wy-sub {
-          font-size: 16.5px;
-          line-height: 1.7;
-          color: #64748b;
-          margin: 0 auto;
-          max-width: 560px;
-          font-weight: 500;
-        }
-
-        /* ============================================================
-           FEATURE GRID
-           ============================================================ */
-        .wy-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-bottom: 72px;
-        }
-
-        /* ============ CARD ============ */
-        .wy-card {
-          position: relative;
-          padding: 32px 28px 28px;
-          background: #fafbff;
-          border: 1px solid #eef2f7;
-          border-radius: 22px;
-          overflow: hidden;
-          opacity: 0;
-          transform: translateY(24px);
-          transition: all 0.65s cubic-bezier(0.22, 1, 0.36, 1);
-          isolation: isolate;
-        }
-        .wy.is-visible .wy-card {
-          opacity: 1;
-          transform: translateY(0);
-          transition-delay: var(--d);
-        }
-        .wy-card:hover {
-          background: #ffffff;
-          border-color: #ddd6fe;
-          transform: translateY(-5px);
-          box-shadow:
-            0 24px 60px -24px rgba(124,58,237,0.28),
-            0 0 0 1px rgba(124,58,237,0.06);
-        }
-
-        /* Top row */
-        .wy-card-top {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 26px;
-        }
-        .wy-card-num {
-          font-size: 13px;
-          font-weight: 900;
-          letter-spacing: 0.06em;
-          color: #cbd5e1;
-          transition: color 0.35s ease;
-        }
-        .wy-card:hover .wy-card-num {
-          color: #7c3aed;
-        }
-
-        .wy-card-tag {
-          display: inline-flex;
-          padding: 4px 10px;
-          background: #ffffff;
-          border: 1px solid #eef2f7;
-          border-radius: 999px;
-          font-size: 10.5px;
-          font-weight: 800;
-          color: #94a3b8;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          transition: all 0.35s ease;
-        }
-        .wy-card:hover .wy-card-tag {
-          background: #f5f3ff;
-          border-color: #e9d5ff;
-          color: #7c3aed;
-        }
-
-        /* Icon */
-        .wy-card-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 56px;
-          height: 56px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-          border: 1px solid #e9d5ff;
-          color: #7c3aed;
-          margin-bottom: 22px;
-          transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .wy-card:hover .wy-card-icon {
-          background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-          border-color: transparent;
-          color: #ffffff;
-          transform: scale(1.08) rotate(-4deg);
-          box-shadow:
-            0 12px 28px -8px rgba(124,58,237,0.55),
-            inset 0 1px 0 rgba(255,255,255,0.25);
-        }
-
-        /* Title */
-        .wy-card-title {
-          font-size: 19px;
-          font-weight: 800;
-          color: #0a0f1e;
-          margin: 0 0 10px;
-          letter-spacing: -0.025em;
-          line-height: 1.3;
-          transition: color 0.3s ease;
-        }
-        .wy-card:hover .wy-card-title {
-          color: #7c3aed;
-        }
-
-        /* Desc */
-        .wy-card-desc {
-          font-size: 14px;
-          line-height: 1.65;
-          color: #64748b;
-          margin: 0;
-          font-weight: 500;
-        }
-
-        /* Accent bar — bottom */
-        .wy-card-accent {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 3px;
-          background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%);
-          transform: scaleX(0);
-          transform-origin: left center;
-          transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .wy-card:hover .wy-card-accent {
-          transform: scaleX(1);
-        }
-
-        /* Glow */
-        .wy-card-glow {
-          position: absolute;
-          top: -60px;
-          right: -60px;
-          width: 220px;
-          height: 220px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%);
-          filter: blur(50px);
-          opacity: 0;
-          transition: opacity 0.5s ease;
-          pointer-events: none;
-          z-index: -1;
-        }
+        .wy-bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(99,102,241,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.045) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 100%); -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 40%, black 30%, transparent 100%); }
+        .wy-bg-glow { position: absolute; border-radius: 50%; filter: blur(140px); }
+        .wy-bg-glow-1 { width: 620px; height: 620px; background: radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%); top: -12%; left: -10%; }
+        .wy-bg-glow-2 { width: 640px; height: 640px; background: radial-gradient(circle, rgba(168,85,247,0.07) 0%, transparent 70%); bottom: -15%; right: -12%; }
+        .wy-wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 40px; }
+        .wy-head { text-align: center; max-width: 720px; margin: 0 auto 76px; opacity: 0; transform: translateY(24px); transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1); }
+        .wy.is-visible .wy-head { opacity: 1; transform: translateY(0); }
+        .wy-badge-row { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+        .wy-badge-line { display: inline-block; width: 42px; height: 1.5px; background: linear-gradient(90deg, transparent, #c4b5fd, transparent); border-radius: 999px; }
+        .wy-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px 6px 12px; background: #f5f3ff; border: 1px solid #e9d5ff; border-radius: 999px; font-size: 11.5px; font-weight: 800; color: #7c3aed; letter-spacing: 0.14em; text-transform: uppercase; }
+        .wy-badge-dot { width: 6px; height: 6px; background: #7c3aed; border-radius: 50%; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); animation: wyPulse 2s ease-in-out infinite; }
+        @keyframes wyPulse { 0%, 100% { box-shadow: 0 0 0 3px rgba(124,58,237,0.15); } 50% { box-shadow: 0 0 0 6px rgba(124,58,237,0.07); } }
+        .wy-title { font-size: 56px; line-height: 1.06; color: #0a0f1e; margin: 0 0 18px; }
+        .wy-title-accent { background: linear-gradient(120deg, #7c3aed 0%, #a855f7 60%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .wy-sub { font-size: 16.5px; line-height: 1.7; color: #64748b; margin: 0 auto; max-width: 560px; font-weight: 500; }
+        .wy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 72px; }
+        .wy-card { position: relative; padding: 32px 28px 28px; background: #fafbff; border: 1px solid #eef2f7; border-radius: 22px; overflow: hidden; opacity: 0; transform: translateY(24px); transition: all 0.65s cubic-bezier(0.22, 1, 0.36, 1); isolation: isolate; }
+        .wy.is-visible .wy-card { opacity: 1; transform: translateY(0); transition-delay: var(--d); }
+        .wy-card:hover { background: #ffffff; border-color: #ddd6fe; transform: translateY(-5px); box-shadow: 0 24px 60px -24px rgba(124,58,237,0.28), 0 0 0 1px rgba(124,58,237,0.06); }
+        .wy-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+        .wy-card-num { font-size: 13px; font-weight: 900; letter-spacing: 0.06em; color: #cbd5e1; transition: color 0.35s ease; }
+        .wy-card:hover .wy-card-num { color: #7c3aed; }
+        .wy-card-tag { display: inline-flex; padding: 4px 10px; background: #ffffff; border: 1px solid #eef2f7; border-radius: 999px; font-size: 10.5px; font-weight: 800; color: #94a3b8; letter-spacing: 0.12em; text-transform: uppercase; transition: all 0.35s ease; }
+        .wy-card:hover .wy-card-tag { background: #f5f3ff; border-color: #e9d5ff; color: #7c3aed; }
+        .wy-card-icon { display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%); border: 1px solid #e9d5ff; color: #7c3aed; margin-bottom: 22px; transition: all 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+        .wy-card:hover .wy-card-icon { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); border-color: transparent; color: #ffffff; transform: scale(1.08) rotate(-4deg); box-shadow: 0 12px 28px -8px rgba(124,58,237,0.55), inset 0 1px 0 rgba(255,255,255,0.25); }
+        .wy-card-title { font-size: 19px; font-weight: 800; color: #0a0f1e; margin: 0 0 10px; letter-spacing: -0.025em; line-height: 1.3; transition: color 0.3s ease; }
+        .wy-card:hover .wy-card-title { color: #7c3aed; }
+        .wy-card-desc { font-size: 14px; line-height: 1.65; color: #64748b; margin: 0; font-weight: 500; }
+        .wy-card-accent { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #7c3aed 0%, #a855f7 100%); transform: scaleX(0); transform-origin: left center; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .wy-card:hover .wy-card-accent { transform: scaleX(1); }
+        .wy-card-glow { position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(circle, rgba(124,58,237,0.2) 0%, transparent 70%); filter: blur(50px); opacity: 0; transition: opacity 0.5s ease; pointer-events: none; z-index: -1; }
         .wy-card:hover .wy-card-glow { opacity: 1; }
+        
+        .wy-stats { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 40px 44px; background: #fafbff; border: 1px solid #eef2f7; border-radius: 24px; opacity: 0; transform: translateY(20px); transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s; }
+        .wy.is-visible .wy-stats { opacity: 1; transform: translateY(0); }
+        .wy-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+        .wy-stat-val { font-size: 32px; font-weight: 900; letter-spacing: -0.04em; line-height: 1; background: linear-gradient(120deg, #7c3aed 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .wy-stat-label { font-size: 12.5px; font-weight: 600; color: #64748b; letter-spacing: 0.04em; text-transform: uppercase; }
+        .wy-stat-divider { width: 1px; height: 40px; background: linear-gradient(180deg, transparent, #e2e8f0 50%, transparent); flex-shrink: 0; }
 
-        /* ============================================================
-           STATS STRIP
-           ============================================================ */
-        .wy-stats {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 24px;
-          padding: 40px 44px;
-          background: #fafbff;
-          border: 1px solid #eef2f7;
-          border-radius: 24px;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s;
-        }
-        .wy.is-visible .wy-stats {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .wy-stat {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          text-align: center;
-        }
-        .wy-stat-val {
-          font-size: 32px;
-          font-weight: 900;
-          letter-spacing: -0.04em;
-          line-height: 1;
-          background: linear-gradient(120deg, #7c3aed 0%, #a855f7 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-        .wy-stat-label {
-          font-size: 12.5px;
-          font-weight: 600;
-          color: #64748b;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
-        .wy-stat-divider {
-          width: 1px;
-          height: 40px;
-          background: linear-gradient(180deg, transparent, #e2e8f0 50%, transparent);
-          flex-shrink: 0;
-        }
-
-        /* ============================================================
-           TABLET
-           ============================================================ */
         @media (max-width: 1024px) {
           .wy { padding: 96px 0; }
           .wy-wrap { padding: 0 32px; }
           .wy-title { font-size: 46px; }
           .wy-sub { font-size: 15.5px; }
           .wy-head { margin-bottom: 60px; }
-
-          .wy-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 56px;
-          }
+          .wy-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 56px; }
           .wy-card { padding: 28px 24px 24px; }
           .wy-card-icon { width: 52px; height: 52px; border-radius: 14px; }
           .wy-card-title { font-size: 17px; }
           .wy-card-desc { font-size: 13.5px; }
-
           .wy-stats { padding: 32px 32px; }
           .wy-stat-val { font-size: 28px; }
         }
 
-        /* ============================================================
-           MOBILE
-           ============================================================ */
         @media (max-width: 640px) {
           .wy { padding: 72px 0 80px; }
           .wy-wrap { padding: 0 20px; }
           .wy-head { margin-bottom: 44px; }
-
           .wy-badge-row { gap: 10px; margin-bottom: 16px; }
           .wy-badge-line { width: 26px; }
           .wy-badge { font-size: 10.5px; padding: 5px 12px 5px 10px; letter-spacing: 0.12em; }
-
           .wy-title { font-size: 32px; line-height: 1.12; margin-bottom: 14px; }
           .wy-sub { font-size: 14.5px; line-height: 1.65; }
-
-          .wy-grid {
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 40px;
-          }
-
-          .wy-card {
-            padding: 22px 20px 20px;
-            border-radius: 18px;
-          }
+          .wy-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 40px; }
+          .wy-card { padding: 22px 20px 20px; border-radius: 18px; }
           .wy-card-top { margin-bottom: 20px; }
           .wy-card-num { font-size: 12px; }
           .wy-card-tag { font-size: 9.5px; padding: 3px 9px; letter-spacing: 0.1em; }
-          .wy-card-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 13px;
-            margin-bottom: 16px;
-          }
+          .wy-card-icon { width: 48px; height: 48px; border-radius: 13px; margin-bottom: 16px; }
           .wy-card-icon svg { width: 20px; height: 20px; }
           .wy-card-title { font-size: 16px; margin-bottom: 8px; }
           .wy-card-desc { font-size: 13px; line-height: 1.6; }
-
-          /* Stats — 2x2 grid */
-          .wy-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px 16px;
-            padding: 28px 24px;
-            border-radius: 20px;
-          }
+          .wy-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px 16px; padding: 28px 24px; border-radius: 20px; }
           .wy-stat-divider { display: none; }
           .wy-stat-val { font-size: 24px; }
           .wy-stat-label { font-size: 11px; }
@@ -633,20 +342,8 @@ export default function WhyChooseUs() {
           .wy-stat-val { font-size: 22px; }
         }
 
-        /* Reduced motion */
         @media (prefers-reduced-motion: reduce) {
-          .wy-head,
-          .wy-card,
-          .wy-stats,
-          .wy-card-icon,
-          .wy-card-accent,
-          .wy-card-glow,
-          .wy-badge-dot {
-            animation: none !important;
-            transition: none !important;
-            opacity: 1 !important;
-            transform: none !important;
-          }
+          .wy-head, .wy-card, .wy-stats, .wy-card-icon, .wy-card-accent, .wy-card-glow, .wy-badge-dot { animation: none !important; transition: none !important; opacity: 1 !important; transform: none !important; }
         }
       `}</style>
     </section>

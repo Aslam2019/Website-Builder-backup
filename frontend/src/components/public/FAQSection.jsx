@@ -17,7 +17,7 @@ const FAQS = [
   {
     num: '01',
     q: 'Do I need coding knowledge to build a website?',
-    a: 'Not at all. N Cube is a 100% no-code platform. Fill out a simple form, choose a template, and we handle the entire technical side for you — from design to hosting.',
+    a: 'Not at all. NQube is a 100% no-code platform. Fill out a simple form, choose a template, and we handle the entire technical side for you — from design to hosting.',
   },
   {
     num: '02',
@@ -32,7 +32,7 @@ const FAQS = [
   {
     num: '04',
     q: 'Can I update my website content later?',
-    a: 'Yes. Every N Cube website comes with a simple admin dashboard where you can edit supported fields like business description, phone number, services, images, and more — anytime.',
+    a: 'Yes. Every NQube website comes with a simple admin dashboard where you can edit supported fields like business description, phone number, services, images, and more — anytime.',
   },
   {
     num: '05',
@@ -103,7 +103,7 @@ export default function FAQSection() {
           </div>
           <div className="faq-head-right">
             <p className="faq-lead">
-              Everything you need to know about N Cube. Can't find what you're
+              Everything you need to know about NQube. Can't find what you're
               looking for? Our team is here to help.
             </p>
           </div>

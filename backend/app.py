@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request, Response
 import os
+import requests
 from config import Config
 from flask_cors import CORS
 from database.mongo import init_mongo, close_mongo
@@ -8,16 +9,16 @@ from database.seed import run_all_seeds
 from middleware.error_handler import register_error_handlers
 from blueprints.settings import settings_bp
 
-
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     app.config["MAX_CONTENT_LENGTH"] = Config.MAX_CONTENT_LENGTH
 
     CORS(app,
-         resources={r"/api/*": {"origins": Config.CORS_ORIGINS}},
+         resources={r"/api/*": {"origins": "*"}},
          supports_credentials=True,
-         allow_headers=["Content-Type", "Authorization"])
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     register_error_handlers(app)
 
@@ -44,9 +45,8 @@ def create_app():
     from blueprints.payments import payments_bp
     from blueprints.admin import admin_bp
     from blueprints.enquiries import enquiries_bp
-# ... existing imports
 
-# Blueprint registration
+    # Blueprint registration
     app.register_blueprint(enquiries_bp, url_prefix="/api/enquiries")
     app.register_blueprint(auth_bp,        url_prefix="/api/auth")
     app.register_blueprint(categories_bp,  url_prefix="/api/categories")
@@ -56,12 +56,44 @@ def create_app():
     app.register_blueprint(websites_bp,    url_prefix="/api/websites")
     app.register_blueprint(payments_bp,    url_prefix="/api/payments")
     app.register_blueprint(admin_bp,       url_prefix="/api/admin")
-    app.register_blueprint(settings_bp, url_prefix="/api/settings")
+    app.register_blueprint(settings_bp,    url_prefix="/api/settings")
 
     # Serve uploaded files
     @app.route("/uploads/<path:subpath>", methods=["GET"])
     def serve_upload(subpath):
         return send_from_directory(Config.UPLOAD_FOLDER, subpath)
+
+    # ============================================================
+    # ✅ FIXED: SUBDOMAIN ROUTING (Direct ah CloudFront fetch)
+    # ============================================================
+    @app.route('/', defaults={'path': ''}, subdomain='<subdomain>')
+    @app.route('/<path:path>', subdomain='<subdomain>')
+    def handle_subdomain(subdomain, path):
+        # Ignore main domain and API subdomain
+        if subdomain in ['www', 'api']:
+            return jsonify({"message": "Not found"}), 404
+
+        # Direct ah DB la check panni, CloudFront la irundhu fetch panrom
+        from database.mongo import get_db
+        
+        db = get_db()
+        website = db.websites.find_one({
+            "username": {"$regex": f"^{subdomain}$", "$options": "i"}, 
+            "status": "published"
+        })
+
+        if not website:
+            return jsonify({"message": "Website not found in DB", "success": False}), 404
+
+        if website.get("live_url"):
+            try:
+                # ✅ Ippo namma direct ah CloudFront la irundhu fetch panrom
+                response = requests.get(website["live_url"], verify=False)
+                return Response(response.text, mimetype='text/html')
+            except Exception as e:
+                return jsonify({"message": f"Error fetching CloudFront: {str(e)}", "success": False}), 500
+                
+        return jsonify({"message": "Live URL not generated", "success": False}), 404
 
     import atexit
     atexit.register(close_mongo)

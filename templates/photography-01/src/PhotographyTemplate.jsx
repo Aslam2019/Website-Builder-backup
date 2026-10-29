@@ -2,34 +2,24 @@ import { useEffect, useState, useMemo, useRef } from 'react'
 import { getUploadsBase } from './utils/constants'
 import { buildWhatsAppLink } from './utils/whatsapp'
 import useScrollReveal from './hooks/useScrollReveal'
+import WhatsAppFloat from './WhatsAppFloat' // ✅ ADD PANNIRUKEN
 import './photography.css'
 
 const getImgUrl = (path) => {
   if (!path) return '';
   if (typeof path !== 'string') return path;
   
-  // 1. Already full URL ah irundha (https://...), adha appadiye return pannu
   if (path.startsWith('http')) return path;
   
   const base = (window.__UPLOADS_BASE__ || "https://d24e11dzjriy3b.cloudfront.net").replace(/\/$/, ''); 
   
-  // 2. Path la /uploads/ irundha, base kooda sethu return pannu
   if (path.startsWith('/uploads/')) return `${base}${path}`;
   if (path.startsWith('uploads/')) return `${base}/${path}`;
   
-  // 3. Vera path irundha, /uploads/ sethu return pannu
   if (path.startsWith('/')) return `${base}/uploads${path}`;
   
-  // 4. Filename mattum irundha
   return `${base}/uploads/${path}`;
 };
-
-
-
-
-
-
-
 
 /* ============ Hero fallback images ============ */
 const HERO_IMAGES = [
@@ -142,7 +132,8 @@ function AnimatedCounter({ value, duration = 1800 }) {
 /* ============================================================
    MAIN TEMPLATE
    ============================================================ */
-export default function PhotographyTemplate({ data: propData, website }) {
+// ✅ showWhatsapp prop ah add panniruken
+export default function PhotographyTemplate({ data: propData, website, showWhatsapp }) {
   // ✅ 1. Window data or Prop data ah edukkanum
   const data = window.__SITE_DATA__ || propData || {};
   
@@ -383,7 +374,6 @@ ${message ? `\nMessage: ${message}` : ''}`
               return (
                 <span key={i} className="ph-word-wrap">
                   <span className="ph-word" style={{ animationDelay: `${0.2 + i * 0.08}s` }}>
-                    {/* ✅ Lowercase ah check pandrom */}
                     {accentWords.includes(clean) ? <em className="ph-hero-accent">{word}</em> : word}
                   </span>{' '}
                 </span>
@@ -855,6 +845,14 @@ ${message ? `\nMessage: ${message}` : ''}`
           <button className="ph-lightbox-close" onClick={() => setLightbox(null)}>✕</button>
           <img src={getImgUrl(lightbox)} alt="Preview" className="ph-lightbox-img" onClick={e => e.stopPropagation()} />
         </div>
+      )}
+
+      {/* ✅ WHATSAPP FLOAT BUTTON ADD PANNIRUKEN */}
+      {showWhatsapp && (
+        <WhatsAppFloat
+          number={data.whatsapp || data.phone}
+          name={data.studio_name || data.photographer_name || 'us'}
+        />
       )}
     </div>
   )

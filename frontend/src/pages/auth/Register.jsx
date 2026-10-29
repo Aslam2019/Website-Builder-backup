@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useNotify } from '../../context/NotificationContext'
 import { categoryApi } from '../../api/categoryApi'
 import { pricingApi } from '../../api/pricingApi'
+import { adminApi } from '../../api/adminApi'
 import { isMobile } from '../../utils/validators'
 
 const interStyle = {
@@ -11,6 +12,16 @@ const interStyle = {
   fontFeatureSettings: "'cv02','cv03','cv04','cv11'",
   WebkitFontSmoothing: 'antialiased',
   MozOsxFontSmoothing: 'grayscale',
+}
+
+/* ✅ Build full URL for images */
+const getFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  const base = import.meta.env.VITE_UPLOADS_BASE_URL 
+    || import.meta.env.VITE_API_URL?.replace('/api', '') 
+    || 'https://98.130.23.135'
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
 }
 
 /* ============================================================
@@ -62,7 +73,7 @@ const getPasswordStrength = (password) => {
 }
 
 /* ============================================================
-   ✅ CUSTOM SELECT COMPONENT (native select-a replace pannudhu)
+   ✅ CUSTOM SELECT COMPONENT
    ============================================================ */
 function CustomSelect({ value, onChange, options, placeholder, error, disabled }) {
   const [open, setOpen] = useState(false)
@@ -70,7 +81,6 @@ function CustomSelect({ value, onChange, options, placeholder, error, disabled }
   const wrapperRef = useRef(null)
   const searchInputRef = useRef(null)
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
@@ -82,7 +92,6 @@ function CustomSelect({ value, onChange, options, placeholder, error, disabled }
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  // Close on Escape
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape') {
@@ -94,7 +103,6 @@ function CustomSelect({ value, onChange, options, placeholder, error, disabled }
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
-  // Auto-focus search when opens
   useEffect(() => {
     if (open && searchInputRef.current) {
       setTimeout(() => searchInputRef.current?.focus(), 50)
@@ -193,6 +201,29 @@ export default function Register() {
   const [categories, setCategories] = useState([])
   const [plans, setPlans] = useState([])
   const [loadingOptions, setLoadingOptions] = useState(true)
+
+  // ✅ Site Settings State (Logo & Name)
+  const [site, setSite] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wb_site_settings')
+      return cached ? JSON.parse(cached) : { logo_url: '', site_name: 'WebsiteBuilder' }
+    } catch {
+      return { logo_url: '', site_name: 'WebsiteBuilder' }
+    }
+  })
+
+  // ✅ Fetch Site Settings
+  useEffect(() => {
+    adminApi.getSiteSettings()
+      .then((res) => {
+        const data = res.data?.data
+        if (data) {
+          setSite(data)
+          localStorage.setItem('wb_site_settings', JSON.stringify(data))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const [form, setForm] = useState({
     username: '', password: '', confirm_password: '',
@@ -345,6 +376,27 @@ export default function Register() {
     [categories]
   )
 
+  /* ✅ Dynamic Brand Component */
+  const BrandLogo = () => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
+      {site.logo_url ? (
+        <img
+          src={getFullUrl(site.logo_url)}
+          alt={site.site_name || 'Logo'}
+          style={{ height: '42px', width: 'auto', maxWidth: '60px', objectFit: 'contain' }}
+          onError={(e) => { e.target.style.display = 'none' }}
+        />
+      ) : (
+        <span className="reg-brand-mark">
+          {(site.site_name || 'WebsiteBuilder').charAt(0).toUpperCase()}
+        </span>
+      )}
+      <span className="reg-brand-text">
+        {site.site_name || 'WebsiteBuilder'}
+      </span>
+    </span>
+  )
+
   return (
     <div className="reg-root" style={interStyle}>
       <div className="reg-bg" aria-hidden="true">
@@ -357,11 +409,8 @@ export default function Register() {
       <div className="reg-container">
         {/* LEFT */}
         <aside className="reg-aside">
-          <Link to="/" className="reg-brand">
-            <span className="reg-brand-mark">WB</span>
-            <span className="reg-brand-text">
-              Website<span>Builder</span>
-            </span>
+          <Link to="/" className="reg-brand" style={{ textDecoration: 'none' }}>
+            <BrandLogo />
           </Link>
 
           <div className="reg-aside-content">
@@ -399,18 +448,6 @@ export default function Register() {
                 <span>No credit card required</span>
               </li>
             </ul>
-          </div>
-
-          <div className="reg-aside-foot">
-            <div className="reg-aside-avatars">
-              <span className="reg-aside-avatar" style={{ background: '#6366f1' }}>A</span>
-              <span className="reg-aside-avatar" style={{ background: '#a855f7' }}>R</span>
-              <span className="reg-aside-avatar" style={{ background: '#06b6d4' }}>K</span>
-              <span className="reg-aside-avatar reg-aside-avatar-more">+2k</span>
-            </div>
-            <p className="reg-aside-foot-text">
-              <strong>2,000+</strong> businesses registered
-            </p>
           </div>
         </aside>
 
@@ -938,39 +975,6 @@ export default function Register() {
           color: #10b981;
           flex-shrink: 0;
         }
-
-        .reg-aside-foot {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding-top: 24px;
-          border-top: 1px solid rgba(255,255,255,0.08);
-        }
-        .reg-aside-avatars { display: flex; align-items: center; }
-        .reg-aside-avatar {
-          width: 32px; height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          font-size: 12px;
-          font-weight: 700;
-          border: 2px solid #0b0a1f;
-          margin-left: -8px;
-        }
-        .reg-aside-avatar:first-child { margin-left: 0; }
-        .reg-aside-avatar-more {
-          background: rgba(255,255,255,0.1);
-          font-size: 10.5px;
-          color: #cbd5e1;
-        }
-        .reg-aside-foot-text {
-          font-size: 13px;
-          color: #94a3b8;
-          margin: 0;
-        }
-        .reg-aside-foot-text strong { color: #fff; }
 
         /* ============ RIGHT MAIN ============ */
         .reg-main {
