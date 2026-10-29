@@ -2,8 +2,8 @@ name: Deploy Backend to EC2
 
 on:
   push:
-    branches: ["main", "feature/normal-changes"] # Unga main branch name. Illa "feature/normal-changes" nu podunga
-    paths:
+      branches: ["main", "feature/normal-changes"] # Unga main branch name. Illa "feature/normal-changes" nu podunga
+      paths:
       - 'backend/**'
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/Website-Builder-backup/backend
-            git pull origin main
+            git pull origin feature/normal-changes
             source venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl restart website-builder
