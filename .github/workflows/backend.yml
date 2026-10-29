@@ -2,7 +2,7 @@ name: Deploy Backend to EC2
 
 on:
   push:
-    branches: [ "main", "feature/normal-changes" ]
+    branches: [ "main" ]
     paths:
       - 'backend/**'
   workflow_dispatch: # ✅ Ithu dhaan manual run panna help pannum
@@ -22,7 +22,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/Website-Builder-backup/backend
-            git pull origin feature/normal-changes
+            git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
             sudo systemctl restart website-builder
