@@ -5,6 +5,7 @@ on:
     branches: [ "main", "feature/normal-changes" ]
     paths:
       - 'frontend/**'
+  workflow_dispatch: # ✅ Ithu dhaan manual run panna help pannum
 
 jobs:
   deploy:
