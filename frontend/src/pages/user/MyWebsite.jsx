@@ -5,12 +5,19 @@ import Loader from '../../components/common/Loader'
 import { formatDate } from '../../utils/formatDate'
 import { IconEye, IconEdit, IconWebsite, IconCheck, IconClock } from '../../components/dashboard/Icons'
 
-// ✅ Image URL Helper
+// ✅ Helper 1: Full URL (CloudFront)
 const getFullUrl = (url) => {
   if (!url) return ''
   if (url.startsWith('http') || url.startsWith('data:')) return url
   const base = import.meta.env.VITE_UPLOADS_BASE_URL || 'https://d24e11dzjriy3b.cloudfront.net'
   return `${base}${url.startsWith('/') ? url : `/${url}`}`
+}
+
+// ✅ Helper 2: File Name mattum edukkanum (Long URL ku badhila)
+const getFileName = (url) => {
+  if (!url) return ''
+  const parts = url.split('/')
+  return parts[parts.length - 1]
 }
 
 export default function MyWebsite() {
@@ -44,13 +51,13 @@ export default function MyWebsite() {
   const formData = website.form_data || {}
 
   return (
-    <div>
+    <div className="my-website-page">
       <div className="page-head">
         <div>
           <h1 className="page-title">My Website</h1>
           <p className="page-sub">Your generated website</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <Link to="/dashboard/website-form" className="btn btn-outline">
             <IconEdit size={15} /> Edit Content
           </Link>
@@ -61,7 +68,7 @@ export default function MyWebsite() {
       </div>
 
       <div className="dash-2col">
-        <div className="card">
+        <div className="card" style={{ minWidth: 0 }}>
           <h3 className="card-title">Website Details</h3>
           <div className="view-summary">
             <div className="view-row">
@@ -89,7 +96,7 @@ export default function MyWebsite() {
                   <img 
                     src={getFullUrl(formData.profile_image)} 
                     alt="Profile" 
-                    style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }} 
+                    style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '50%' }} 
                   />
                 </div>
               </div>
@@ -103,7 +110,7 @@ export default function MyWebsite() {
                   <img 
                     src={getFullUrl(formData.logo)} 
                     alt="Logo" 
-                    style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+                    style={{ width: '60px', height: '60px', objectFit: 'contain' }} 
                   />
                 </div>
               </div>
@@ -119,18 +126,18 @@ export default function MyWebsite() {
                       key={i} 
                       src={getFullUrl(img)} 
                       alt={`Gallery ${i}`} 
-                      style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }} 
+                      style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }} 
                     />
                   ))}
                 </div>
               </div>
             )}
 
-            {/* ✅ Projects (Image) */}
+            {/* ✅ Projects */}
             {formData.projects?.length > 0 && (
               <div className="view-row">
                 <div className="view-label">Projects</div>
-                <div className="view-value">
+                <div className="view-value" style={{ wordBreak: 'break-word' }}>
                   {formData.projects.map((p, i) => (
                     <div key={i} style={{ marginBottom: 12 }}>
                       <div style={{ fontWeight: 600 }}>{p.name}</div>
@@ -138,7 +145,7 @@ export default function MyWebsite() {
                         <img 
                           src={getFullUrl(p.image)} 
                           alt={p.name} 
-                          style={{ width: '100px', height: 'auto', borderRadius: '8px', marginTop: 4 }} 
+                          style={{ width: '80px', height: 'auto', borderRadius: '8px', marginTop: 4 }} 
                         />
                       )}
                       <div style={{ fontSize: 12, color: '#64748b' }}>{p.description}</div>
@@ -148,18 +155,18 @@ export default function MyWebsite() {
               </div>
             )}
 
-            {/* ✅ Resume (Link) */}
+            {/* ✅ Resume (File Name mattum kaattum) */}
             {formData.resume && (
               <div className="view-row">
                 <div className="view-label">Resume</div>
-                <div className="view-value">
+                <div className="view-value" style={{ wordBreak: 'break-word' }}>
                   <a 
                     href={getFullUrl(formData.resume)} 
                     target="_blank" 
                     rel="noreferrer" 
                     style={{ color: '#6366f1', textDecoration: 'underline' }}
                   >
-                    View Resume
+                    {getFileName(formData.resume)} {/* ✅ Long URL ku badhila file name */}
                   </a>
                 </div>
               </div>
@@ -211,6 +218,19 @@ export default function MyWebsite() {
           </div>
         </div>
       </div>
+
+      {/* ✅ CSS for Mobile Overflow Fix */}
+      <style>{`
+        .view-value {
+          word-break: break-word;
+          overflow-wrap: anywhere;
+          max-width: 100%;
+        }
+        @media (max-width: 768px) {
+          .dash-2col { grid-template-columns: 1fr; }
+          .page-head { flex-direction: column; gap: 16px; align-items: flex-start; }
+        }
+      `}</style>
     </div>
   )
 }
