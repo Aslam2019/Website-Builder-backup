@@ -281,14 +281,12 @@ export default function Navbar() {
           src={getFullUrl(site.logo_url)}
           alt={site.site_name || 'Logo'}
           className="brand-logo"
-          onError={(e) => { e.target.style.display = 'none' }}
         />
       ) : (
-        <span className="brand-mark">WB</span>
       )}
       <span className="brand-text">
         {(() => {
-          const name = site.site_name || 'WebsiteBuilder'
+          const name = site.site_name || 'NQube'
           const idx = name.lastIndexOf(' ')
           if (idx > 0) {
             return (
