@@ -116,9 +116,9 @@ export default function Navbar() {
   const [site, setSite] = useState(() => {
     try {
       const cached = localStorage.getItem('wb_site_settings')
-      return cached ? JSON.parse(cached) : { logo_url: '', site_name: '' }
+      return cached ? JSON.parse(cached) : { logo_url: '', site_name: 'NQube' }
     } catch {
-      return { logo_url: '', site_name: '' }
+      return { logo_url: '', site_name: 'NQube' }
     }
   })
   
