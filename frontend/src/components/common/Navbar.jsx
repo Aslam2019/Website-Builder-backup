@@ -279,10 +279,13 @@ export default function Navbar() {
       {site.logo_url ? (
         <img
           src={getFullUrl(site.logo_url)}
-          alt={site.site_name || 'Logo'}
+          alt="Logo"
           className="brand-logo"
         />
       ) : (
+        <span className="brand-mark">
+        {site.site_name ? site.site_name.charAt(0).toUpperCase() : 'N'}
+        </span>
       )}
       <span className="brand-text">
         {(() => {
