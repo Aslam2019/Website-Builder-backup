@@ -144,7 +144,7 @@ export function FileUpload({ label, name, value, onChange, accept = '.pdf,.doc,.
           <IconUpload size={14} /> {value ? 'Change File' : 'Upload File'}
         </label>
         {value && (
-          <a href={`${UPLOADS_BASE}${value}`} target="_blank" rel="noreferrer"
+          <a href={getFullUrl(value)} target="_blank" rel="noreferrer"
             className="ff-img-view">
             View uploaded
           </a>
@@ -177,7 +177,7 @@ export function ImageListUpload({ label, name, value = [], onChange, folder = 'g
       <div className="ff-imgs">
         {value.map((url, i) => (
           <div key={i} className="ff-img-thumb">
-            <img src={`${UPLOADS_BASE}${url}`} alt="" />
+            <img src={getFullUrl(url)} alt="" />
             <button type="button"
               onClick={() => onChange(name, value.filter((_, x) => x !== i))}>
               <IconTrash size={11} />
@@ -262,7 +262,11 @@ export function DynamicList({
                   ) : f.type === 'image' ? (
                     <div className="ff-list-img">
                       {item[f.name] ? (
-                        <img src={`${UPLOADS_BASE}${item[f.name]}`} alt="" className="ff-list-thumb" />
+                        <img 
+                          src={getFullUrl(item[f.name])} 
+                          alt="" 
+                          className="ff-list-thumb" 
+                        />
                       ) : (
                         <div className="ff-list-thumb ff-list-thumb-empty">No image</div>
                       )}
