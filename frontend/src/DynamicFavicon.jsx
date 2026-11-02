@@ -8,6 +8,10 @@ export default function DynamicFavicon() {
         const res = await axiosClient.get('/settings/site')
         const data = res.data?.data
         
+        if (data.site_name) {
+        document.title = data.site_name; 
+      }
+
         if (data?.logo_url) {
           const base = import.meta.env.VITE_UPLOADS_BASE_URL 
             || import.meta.env.VITE_API_URL?.replace('/api', '') 
