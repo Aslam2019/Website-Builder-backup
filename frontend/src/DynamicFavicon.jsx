@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import axiosClient from './api/axiosClient' // ✅ Unga path ah check pannikonga
+import axiosClient from './api/axiosClient' 
 
 export default function DynamicFavicon() {
   useEffect(() => {
@@ -8,10 +8,12 @@ export default function DynamicFavicon() {
         const res = await axiosClient.get('/settings/site')
         const data = res.data?.data
         
-        if (data.site_name) {
-        document.title = data.site_name; 
-      }
+        // ✅ Title ah maathurom
+        if (data?.site_name) {
+          document.title = data.site_name
+        }
 
+        // ✅ Favicon ah maathurom
         if (data?.logo_url) {
           const base = import.meta.env.VITE_UPLOADS_BASE_URL 
             || import.meta.env.VITE_API_URL?.replace('/api', '') 
