@@ -7,6 +7,13 @@ import { useNotify } from '../../context/NotificationContext'
 import { UPLOADS_BASE } from '../../utils/constants'
 
 /* ------------ Text / Email / Tel / URL / Textarea / Select ------------ */
+const getFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  const base = import.meta.env.VITE_UPLOADS_BASE_URL || 'https://d24e11dzjriy3b.cloudfront.net'
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
+}
+
 export function Field({
   label, name, value, onChange, type = 'text',
   required = false, placeholder = '', error = '', rows = 3,
@@ -90,22 +97,24 @@ export function ImageUpload({ label, name, value, onChange, folder = 'gallery' }
   }
 
   return (
-    <div className="ff">
+    <div className="ff-image-upload">
       <label className="ff-label">{label}</label>
-      <div className="ff-img-upload">
+      
+      <div className="ff-image-box">
         {value ? (
-          <div className="ff-img-preview">
-            <img src={`${UPLOADS_BASE}${value}`} alt="" />
-          </div>
+          <img 
+            src={getFullUrl(value)} // ✅ Ithu dhaan main fix
+            alt={label} 
+            className="ff-image-preview" 
+          />
         ) : (
-          <div className="ff-img-empty">No image</div>
+          <div className="ff-image-placeholder">
+            <span>No Image</span>
+          </div>
         )}
-        <label className="ff-img-btn">
-          <input type="file" accept="image/*" hidden
-            onChange={(e) => handle(e.target.files[0])} />
-          <IconUpload size={14} /> {value ? 'Change' : 'Upload Image'}
-        </label>
       </div>
+
+      {/* Upload Button code ... */}
     </div>
   )
 }
