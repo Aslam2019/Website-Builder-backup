@@ -5,6 +5,14 @@ import Loader from '../../components/common/Loader'
 import { formatDate } from '../../utils/formatDate'
 import { IconEye, IconEdit, IconWebsite, IconCheck, IconClock } from '../../components/dashboard/Icons'
 
+// ✅ Image URL Helper
+const getFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  const base = import.meta.env.VITE_UPLOADS_BASE_URL || 'https://d24e11dzjriy3b.cloudfront.net'
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
+}
+
 export default function MyWebsite() {
   const [website, setWebsite] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -33,6 +41,7 @@ export default function MyWebsite() {
   }
 
   const isPublished = website.status === 'published'
+  const formData = website.form_data || {}
 
   return (
     <div>
@@ -71,6 +80,90 @@ export default function MyWebsite() {
               <div className="view-label">Created</div>
               <div className="view-value">{formatDate(website.created_at)}</div>
             </div>
+
+            {/* ✅ Profile Image */}
+            {formData.profile_image && (
+              <div className="view-row">
+                <div className="view-label">Profile Image</div>
+                <div className="view-value">
+                  <img 
+                    src={getFullUrl(formData.profile_image)} 
+                    alt="Profile" 
+                    style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '50%' }} 
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Logo */}
+            {formData.logo && (
+              <div className="view-row">
+                <div className="view-label">Logo</div>
+                <div className="view-value">
+                  <img 
+                    src={getFullUrl(formData.logo)} 
+                    alt="Logo" 
+                    style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Gallery Images */}
+            {formData.gallery?.length > 0 && (
+              <div className="view-row">
+                <div className="view-label">Gallery</div>
+                <div className="view-value" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {formData.gallery.map((img, i) => (
+                    <img 
+                      key={i} 
+                      src={getFullUrl(img)} 
+                      alt={`Gallery ${i}`} 
+                      style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px' }} 
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Projects (Image) */}
+            {formData.projects?.length > 0 && (
+              <div className="view-row">
+                <div className="view-label">Projects</div>
+                <div className="view-value">
+                  {formData.projects.map((p, i) => (
+                    <div key={i} style={{ marginBottom: 12 }}>
+                      <div style={{ fontWeight: 600 }}>{p.name}</div>
+                      {p.image && (
+                        <img 
+                          src={getFullUrl(p.image)} 
+                          alt={p.name} 
+                          style={{ width: '100px', height: 'auto', borderRadius: '8px', marginTop: 4 }} 
+                        />
+                      )}
+                      <div style={{ fontSize: 12, color: '#64748b' }}>{p.description}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Resume (Link) */}
+            {formData.resume && (
+              <div className="view-row">
+                <div className="view-label">Resume</div>
+                <div className="view-value">
+                  <a 
+                    href={getFullUrl(formData.resume)} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    style={{ color: '#6366f1', textDecoration: 'underline' }}
+                  >
+                    View Resume
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
