@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import DynamicFavicon from '../DynamicFavicon' // ✅ 1. Ithu add pannunga
 import PublicLayout from '../layouts/PublicLayout'
 import UserLayout from '../layouts/UserLayout'
 import AdminLayout from '../layouts/AdminLayout'
@@ -39,45 +40,49 @@ import GeneratedWebsite from '../pages/generated/GeneratedWebsite'
 
 export default function AppRoutes() {
   return (
-    <Routes>
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/terms/:slug" element={<Terms />} />
-      </Route>
-
-      <Route element={<PublicRoute />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Route>
-
-      <Route element={<ProtectedRoute />}>
-        <Route element={<UserLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/templates" element={<Templates />} />
-          <Route path="/dashboard/website-form" element={<WebsiteForm />} />
-          <Route path="/dashboard/my-website" element={<MyWebsite />} />
-          <Route path="/dashboard/payments" element={<Payments />} />
-          <Route path="/dashboard/profile" element={<Profile />} />
-          <Route path="/dashboard/checkout" element={<Checkout />} />
+    <>
+      <DynamicFavicon /> {/* ✅ 2. Ithu inga render pannunga */}
+      
+      <Routes>
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/terms/:slug" element={<Terms />} />
         </Route>
-      </Route>
 
-      <Route element={<AdminRoute />}>
-        <Route element={<AdminLayout />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/categories" element={<ManageCategories />} />
-          <Route path="/admin/templates" element={<ManageTemplates />} />
-          <Route path="/admin/pricing" element={<ManagePricing />} />
-          <Route path="/admin/websites" element={<ManageWebsites />} />
-          <Route path="/admin/payments" element={<ManagePayments />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
-          <Route path="/admin/enquiries" element={<ManageEnquiries />} />
+        <Route element={<PublicRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
         </Route>
-      </Route>
 
-      <Route path="/site/:websiteId" element={<GeneratedWebsite />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<UserLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/templates" element={<Templates />} />
+            <Route path="/dashboard/website-form" element={<WebsiteForm />} />
+            <Route path="/dashboard/my-website" element={<MyWebsite />} />
+            <Route path="/dashboard/payments" element={<Payments />} />
+            <Route path="/dashboard/profile" element={<Profile />} />
+            <Route path="/dashboard/checkout" element={<Checkout />} />
+          </Route>
+        </Route>
+
+        <Route element={<AdminRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<ManageUsers />} />
+            <Route path="/admin/categories" element={<ManageCategories />} />
+            <Route path="/admin/templates" element={<ManageTemplates />} />
+            <Route path="/admin/pricing" element={<ManagePricing />} />
+            <Route path="/admin/websites" element={<ManageWebsites />} />
+            <Route path="/admin/payments" element={<ManagePayments />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
+            <Route path="/admin/enquiries" element={<ManageEnquiries />} />
+          </Route>
+        </Route>
+
+        <Route path="/site/:websiteId" element={<GeneratedWebsite />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
