@@ -30,6 +30,14 @@ const FORM_MAP = {
   'gym-and-fitness':      { Component: GymForm,         title: 'Gym / Fitness Website Details' },
 }
 
+// ✅ URL helper
+const getFullUrl = (url) => {
+  if (!url) return ''
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  const base = import.meta.env.VITE_UPLOADS_BASE_URL || 'https://d24e11dzjriy3b.cloudfront.net'
+  return `${base}${url.startsWith('/') ? url : `/${url}`}`
+}
+
 export default function WebsiteForm() {
   const { user } = useAuth()
   const notify = useNotify()
@@ -151,7 +159,6 @@ export default function WebsiteForm() {
         localStorage.setItem(DRAFT_KEY, JSON.stringify(dataToSave))
         notify.success('Form saved! Proceed to payment.')
         
-        // ✅ URL la correct ah ID ah anuppurom (Backticks la irukkanum)
         navigate(`/dashboard/checkout?id=${newId}`)
       }
     } catch (e) {
@@ -240,9 +247,9 @@ export default function WebsiteForm() {
             </div>
           </div>
           
+          {/* ✅ Ithu dhaan main fix (ViewSummary ku prop ah data anuppurom) */}
           <ViewSummary data={formData} />
 
-          {/* ✅ Ithu dhaan pudhu button (ID oda checkout ku anuppum) */}
           <div style={{ padding: '20px 0', textAlign: 'center', borderTop: '1px solid #f1f5f9', marginTop: '20px' }}>
             <button 
               className="btn btn-primary btn-lg" 
@@ -350,12 +357,35 @@ export default function WebsiteForm() {
           .plan-lock-notice { flex-wrap: wrap; }
           .plan-lock-btn { width: 100%; justify-content: center; }
         }
+
+        /* ✅ Fix for ViewSummary Images and Text Overflow */
+        .view-value {
+          word-break: break-word;
+          overflow-wrap: anywhere;
+        }
+        .image-gallery {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+        .summary-img {
+          width: 80px;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 8px;
+          border: 1px solid #e2e8f0;
+        }
       `}</style>
     </div>
   )
 }
 
+// ✅ Fully updated ViewSummary
 function ViewSummary({ data }) {
+  // Image keys to check
+  const imageKeys = ['logo', 'profile_image', 'image', 'resume', 'brochure']
+
   return (
     <div className="view-summary">
       {Object.entries(data).map(([k, v]) => {
@@ -363,17 +393,61 @@ function ViewSummary({ data }) {
         if (v === '' || v === null || v === undefined) return null
 
         let display = v
-        if (Array.isArray(v)) {
+
+        // 1. Single Image (Logo, Profile, etc.)
+        if (typeof v === 'string' && imageKeys.includes(k.toLowerCase())) {
+          const fileUrl = getFullUrl(v)
+          // If it's a PDF (resume), show link with filename
+          if (v.toLowerCase().endsWith('.pdf')) {
+            display = (
+              <a href={fileUrl} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>
+                {v.split('/').pop()}
+              </a>
+            )
+          } else {
+            display = <img src={fileUrl} alt={k} className="summary-img" />
+          }
+        }
+
+        // 2. Array of Images (Gallery)
+        else if (Array.isArray(v) && (k === 'gallery' || k === 'images' || k === 'portfolio')) {
+          display = (
+            <div className="image-gallery">
+              {v.map((imgUrl, i) => {
+                if (typeof imgUrl === 'string' && imgUrl.length > 0) {
+                  return <img key={i} src={getFullUrl(imgUrl)} alt="gallery" className="summary-img" />
+                }
+                // For projects/portfolio (array of objects)
+                if (typeof imgUrl === 'object' && imgUrl.image) {
+                  return <img key={i} src={getFullUrl(imgUrl.image)} alt="project" className="summary-img" />
+                }
+                return null
+              })}
+            </div>
+          )
+        }
+
+        // 3. Array of Objects (Projects, Services, etc.)
+        else if (Array.isArray(v)) {
           display = v.map((item, i) => {
             if (typeof item === 'object') {
               return (
-                <div key={i} className="view-item-obj">
-                  • {item.name || item.title || JSON.stringify(item).slice(0, 60)}
+                <div key={i} className="view-item-obj" style={{ wordBreak: 'break-word' }}>
+                  • {item.name || item.title || item.company || JSON.stringify(item).slice(0, 40)}
                 </div>
               )
             }
             return <span key={i} className="view-chip">{item}</span>
           })
+        }
+
+        // 4. Long URLs (Fallback for any other URL)
+        else if (typeof v === 'string' && v.startsWith('http')) {
+           display = (
+            <a href={v} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'underline', wordBreak: 'break-all' }}>
+              {v.split('/').pop()}
+            </a>
+          )
         }
 
         return (
