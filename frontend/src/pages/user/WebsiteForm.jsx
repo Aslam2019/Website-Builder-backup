@@ -5,7 +5,7 @@ import { useNotify } from '../../context/NotificationContext'
 import { websiteApi } from '../../api/websiteApi'
 import axiosClient from '../../api/axiosClient'
 import Loader from '../../components/common/Loader'
-import { IconEdit, IconRocket } from '../../components/dashboard/Icons'
+import { IconEdit, IconRocket, IconWebsite } from '../../components/dashboard/Icons' // ✅ IconWebsite add panniruken
 
 import PortfolioForm from '../../components/forms/PortfolioForm'
 import RealEstateForm from '../../components/forms/RealEstateForm'
@@ -46,6 +46,11 @@ export default function WebsiteForm() {
   const [loading, setLoading] = useState(true)
   const [formData, setFormData] = useState({})
   const [existingWebsiteId, setExistingWebsiteId] = useState(null)
+  
+  // ✅ Puthu states (Website status track panna)
+  const [website, setWebsite] = useState(null)
+  const [isPublished, setIsPublished] = useState(false)
+
   const [mode, setMode] = useState('edit')
   const [saving, setSaving] = useState(false)
 
@@ -62,6 +67,8 @@ export default function WebsiteForm() {
         const res = await websiteApi.list().catch(() => null)
         const existing = res?.data?.data?.websites?.[0]
         if (existing) {
+          setWebsite(existing) // ✅ Website object save pandrom
+          setIsPublished(existing.status === 'published') // ✅ Status check pandrom
           setExistingWebsiteId(existing._id || existing.id)
           setFormData(existing.form_data || {})
           setMode('view')
@@ -136,10 +143,12 @@ export default function WebsiteForm() {
     setSaving(true)
     try {
       if (existingWebsiteId) {
+        // ✅ Edit panna apram
         await websiteApi.update(existingWebsiteId, { form_data: dataToSave })
-        notify.success('Website updated')
+        notify.success('Website updated! Your live site is generating.')
         setMode('view')
       } else {
+        // ✅ First time save
         if (!selectedTemplate) {
           notify.error('Please select a template first')
           navigate('/dashboard/templates')
@@ -247,16 +256,32 @@ export default function WebsiteForm() {
             </div>
           </div>
           
-          {/* ✅ Ithu dhaan main fix (ViewSummary ku prop ah data anuppurom) */}
           <ViewSummary data={formData} />
 
+          {/* ✅ Ithu dhaan main fix (Conditional Buttons) */}
           <div style={{ padding: '20px 0', textAlign: 'center', borderTop: '1px solid #f1f5f9', marginTop: '20px' }}>
-            <button 
-              className="btn btn-primary btn-lg" 
-              onClick={() => navigate(`/dashboard/checkout?id=${existingWebsiteId}`)}
-            >
-              Proceed to Payment
-            </button>
+            
+            {isPublished ? (
+              // ✅ Already paid aana, Open Live Site kaattum
+              <a 
+                href={`http://${website?.username}.nqube.in`} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="btn btn-primary btn-lg"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
+                <IconWebsite size={16} /> Open Live Site
+              </a>
+            ) : (
+              // ✅ Draft aana mattum Proceed to Payment kaattum
+              <button 
+                className="btn btn-primary btn-lg" 
+                onClick={() => navigate(`/dashboard/checkout?id=${existingWebsiteId}`)}
+              >
+                Proceed to Payment
+              </button>
+            )}
+            
           </div>
         </div>
       ) : (
@@ -358,7 +383,6 @@ export default function WebsiteForm() {
           .plan-lock-btn { width: 100%; justify-content: center; }
         }
 
-        /* ✅ Fix for ViewSummary Images and Text Overflow */
         .view-value {
           word-break: break-word;
           overflow-wrap: anywhere;
@@ -381,9 +405,7 @@ export default function WebsiteForm() {
   )
 }
 
-// ✅ Fully updated ViewSummary
 function ViewSummary({ data }) {
-  // Image keys to check
   const imageKeys = ['logo', 'profile_image', 'image', 'resume', 'brochure']
 
   return (
@@ -394,10 +416,8 @@ function ViewSummary({ data }) {
 
         let display = v
 
-        // 1. Single Image (Logo, Profile, etc.)
         if (typeof v === 'string' && imageKeys.includes(k.toLowerCase())) {
           const fileUrl = getFullUrl(v)
-          // If it's a PDF (resume), show link with filename
           if (v.toLowerCase().endsWith('.pdf')) {
             display = (
               <a href={fileUrl} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'underline' }}>
@@ -409,7 +429,6 @@ function ViewSummary({ data }) {
           }
         }
 
-        // 2. Array of Images (Gallery)
         else if (Array.isArray(v) && (k === 'gallery' || k === 'images' || k === 'portfolio')) {
           display = (
             <div className="image-gallery">
@@ -417,7 +436,6 @@ function ViewSummary({ data }) {
                 if (typeof imgUrl === 'string' && imgUrl.length > 0) {
                   return <img key={i} src={getFullUrl(imgUrl)} alt="gallery" className="summary-img" />
                 }
-                // For projects/portfolio (array of objects)
                 if (typeof imgUrl === 'object' && imgUrl.image) {
                   return <img key={i} src={getFullUrl(imgUrl.image)} alt="project" className="summary-img" />
                 }
@@ -427,7 +445,6 @@ function ViewSummary({ data }) {
           )
         }
 
-        // 3. Array of Objects (Projects, Services, etc.)
         else if (Array.isArray(v)) {
           display = v.map((item, i) => {
             if (typeof item === 'object') {
@@ -441,7 +458,6 @@ function ViewSummary({ data }) {
           })
         }
 
-        // 4. Long URLs (Fallback for any other URL)
         else if (typeof v === 'string' && v.startsWith('http')) {
            display = (
             <a href={v} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'underline', wordBreak: 'break-all' }}>
