@@ -8,7 +8,7 @@ from database.indexes import create_indexes
 from database.seed import run_all_seeds
 from middleware.error_handler import register_error_handlers
 from blueprints.settings import settings_bp
-
+# Test CI/CD
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
