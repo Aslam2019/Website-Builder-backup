@@ -407,6 +407,28 @@ export default function WebsiteForm() {
 
 function ViewSummary({ data }) {
   const imageKeys = ['logo', 'profile_image', 'image', 'resume', 'brochure']
+  
+  // ✅ Ithu dhaan main fix: Database keys ah user-friendly names ah maathurom
+  const LABEL_MAP = {
+    about: 'Hero Description',
+    about_full: 'About Photographer (Full Description)',
+    studio_name: 'Studio Name',
+    photographer_name: 'Photographer Name',
+    speciality: 'Speciality',
+    tagline: 'Tagline / Headline',
+    years_experience: 'Years of Experience',
+    happy_clients: 'Happy Clients',
+    appointment_info: 'Appointment Info',
+    profile_image: 'Photographer Profile Photo',
+    logo: 'Studio Logo',
+    gallery: 'Gallery',
+    full_name: 'Full Name',
+    title: 'Professional Title',
+    bio: 'Short Bio',
+    experience: 'Work Experience',
+    projects: 'Projects',
+    resume: 'Resume',
+  }
 
   return (
     <div className="view-summary">
@@ -415,7 +437,11 @@ function ViewSummary({ data }) {
         if (v === '' || v === null || v === undefined) return null
 
         let display = v
+        
+        // ✅ Label map la irundha atha edukkom, illana key name ah clean pannuvom
+        const labelText = LABEL_MAP[k] || k.replace(/_/g, ' ')
 
+        // 1. Single Image (Logo, Profile, Resume)
         if (typeof v === 'string' && imageKeys.includes(k.toLowerCase())) {
           const fileUrl = getFullUrl(v)
           if (v.toLowerCase().endsWith('.pdf')) {
@@ -429,6 +455,7 @@ function ViewSummary({ data }) {
           }
         }
 
+        // 2. Array of Images (Gallery / Portfolio)
         else if (Array.isArray(v) && (k === 'gallery' || k === 'images' || k === 'portfolio')) {
           display = (
             <div className="image-gallery">
@@ -445,19 +472,21 @@ function ViewSummary({ data }) {
           )
         }
 
+        // 3. Array of Objects (Projects, Services, Reviews)
         else if (Array.isArray(v)) {
           display = v.map((item, i) => {
             if (typeof item === 'object') {
               return (
-                <div key={i} className="view-item-obj" style={{ wordBreak: 'break-word' }}>
-                  • {item.name || item.title || item.company || JSON.stringify(item).slice(0, 40)}
+                <div key={i} className="view-item-obj" style={{ wordBreak: 'break-word', marginBottom: '4px' }}>
+                  • {item.name || item.title || item.company || item.client_name || JSON.stringify(item).slice(0, 50)}
                 </div>
               )
             }
-            return <span key={i} className="view-chip">{item}</span>
+            return <span key={i} className="view-chip" style={{ marginRight: '6px' }}>{item}</span>
           })
         }
 
+        // 4. Long URLs (Fallback - File name mattum kaattum)
         else if (typeof v === 'string' && v.startsWith('http')) {
            display = (
             <a href={v} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'underline', wordBreak: 'break-all' }}>
@@ -468,7 +497,8 @@ function ViewSummary({ data }) {
 
         return (
           <div key={k} className="view-row">
-            <div className="view-label">{k.replace(/_/g, ' ')}</div>
+            {/* ✅ Ithu dhaan labelText kaattum */}
+            <div className="view-label" style={{ textTransform: 'capitalize' }}>{labelText}</div>
             <div className="view-value">
               {display || <span className="muted">—</span>}
             </div>
