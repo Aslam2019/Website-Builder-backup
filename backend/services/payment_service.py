@@ -4,7 +4,7 @@ from bson import ObjectId
 from utils.security import generate_payment_id
 from services.log_service import log_action
 from publish_service import trigger_publish
-from utils.template_engine import render_template
+from utils.template_engine import render_template, normalize_template_name
 
 
 def _now():
@@ -76,12 +76,14 @@ def create_dummy_payment(user_id, website_id, plan_id, amount=None):
     result = db.payments.insert_one(payment_doc)
     payment_doc["_id"] = result.inserted_id
 
-        # -------- Generate Live URL & Publish website --------
+    # -------- Generate Live URL & Publish website --------
     cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net" 
     
     # ✅ Username ah folder name ah use pandrom
-    username = website.get("username", f"site-{website_id}")
+    username = website.get("username") or user.get("username") or f"site-{website_id}"
     live_url = f"{cloudfront_base}/{username}/index.html"
+    template_name = website.get("template_name", "portfolio-01")
+    clean_template_name = normalize_template_name(template_name)
 
     db.websites.update_one(
         {"_id": website["_id"]},
@@ -90,6 +92,8 @@ def create_dummy_payment(user_id, website_id, plan_id, amount=None):
             "payment_status": "successful",
             "payment_id": payment_doc["_id"],
             "live_url": live_url, 
+            "username": username,
+            "template_name": clean_template_name,
             "published_at": now,
             "updated_at": now,
         }}
@@ -97,20 +101,19 @@ def create_dummy_payment(user_id, website_id, plan_id, amount=None):
 
     # -------- SQS Trigger (Template Merge) --------
     try:
-        template_name = website.get("template_name", "unknown")
         form_data = website.get("form_data", {})
-        
-        html_content = render_template(template_name, form_data, cloudfront_base)
+        html_content = render_template(clean_template_name, form_data, cloudfront_base)
 
         trigger_publish(
             website_id=str(website_id),
             user_id=str(user_id),
             username=username,
-            template_name=template_name,
+            template_name=clean_template_name,
             html_content=html_content
         )
     except Exception as e:
         print(f"SQS Trigger failed: {e}")
+
     # -------- Log --------
     log_action(
         admin_id=None,

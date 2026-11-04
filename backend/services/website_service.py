@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from database.mongo import get_db
 from bson import ObjectId
+from utils.template_engine import normalize_template_name
 
 
 def _now():
@@ -62,24 +63,8 @@ def create_website(user_id, payload):
         or form_data.get("photographer_name")
         or user["username"]
     )
-        # ✅ Template Name Auto-Fix (Ithu inga add pannunga)
-    clean_tpl_name = tpl["name"].lower()
-    if "medical" in clean_tpl_name:
-        clean_tpl_name = "medical-01"
-    elif "salon" in clean_tpl_name:
-        clean_tpl_name = "salon-01"
-    elif "photography" in clean_tpl_name:
-        clean_tpl_name = "photography-01"
-    elif "real estate" in clean_tpl_name:
-        clean_tpl_name = "real-estate-01"
-    elif "gym" in clean_tpl_name:
-        clean_tpl_name = "gym-01"
-    elif "education" in clean_tpl_name:
-        clean_tpl_name = "education-01"
-    elif "portfolio" in clean_tpl_name:
-        clean_tpl_name = "portfolio-01"
-    else:
-        clean_tpl_name = clean_tpl_name.replace(" ", "-")
+    # ✅ Template Name Auto-Fix & Normalization
+    clean_tpl_name = normalize_template_name(tpl.get("name"))
 
     doc = {
         "user_id": user["_id"],
@@ -140,9 +125,6 @@ def publish_website(website_id, user_id, live_url):
     """
     Mark a website as published.
     Called from publish flow after CloudFront URL is generated.
-    
-    live_url example: 
-      'https://d18roj0r3oz2ym.cloudfront.net/aslam/salon/index.html'
     """
     db = get_db()
 
@@ -201,6 +183,16 @@ def update_website(website_id, user_id, payload, is_admin=False):
         patch["name"] = str(payload["name"]).strip()
     if is_admin and "status" in payload:
         patch["status"] = payload["status"]
+
+    # Ensure username is always present
+    if not doc.get("username"):
+        user = db.users.find_one({"_id": doc["user_id"]})
+        if user and user.get("username"):
+            patch["username"] = user["username"]
+
+    # Normalize template name if present
+    if doc.get("template_name"):
+        patch["template_name"] = normalize_template_name(doc["template_name"])
 
     patch["updated_at"] = _now()
     db.websites.update_one({"_id": ObjectId(website_id)}, {"$set": patch})

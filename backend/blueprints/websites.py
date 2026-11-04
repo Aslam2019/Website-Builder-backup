@@ -1,4 +1,4 @@
-from flask import Blueprint, request, g, redirect, Response
+from flask import Blueprint, request, g, redirect, Response, jsonify
 from middleware.auth_middleware import token_required
 from middleware.role_middleware import admin_required
 from utils.responses import success, error
@@ -9,7 +9,8 @@ from services.website_service import (
 )
 from database.mongo import get_db
 import requests
-from utils.template_engine import render_template
+from bson import ObjectId
+from utils.template_engine import render_template, normalize_template_name
 from publish_service import trigger_publish
 from datetime import datetime
 
@@ -72,10 +73,7 @@ def get_my_website():
 
 # ============================================================
 # ✅ SUBDOMAIN RESOLVE (URL Masking)
-
-from flask import Response, jsonify
-import requests
-
+# ============================================================
 @websites_bp.route('/resolve/<subdomain>', methods=['GET'], defaults={'path': ''}, strict_slashes=False)
 @websites_bp.route('/resolve/<subdomain>/<path:path>', methods=['GET'])
 def resolve_subdomain(subdomain, path):
@@ -88,20 +86,39 @@ def resolve_subdomain(subdomain, path):
     if not website:
         return jsonify({"message": "Website not found in DB", "success": False}), 404
 
+    # 1. Config.json requested -> return latest form_data directly
+    if path == "config.json":
+        return jsonify(website.get("form_data", {}))
+
+    cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net"
+
+    # 2. Render latest template directly from DB for immediate updates
+    try:
+        clean_tpl = normalize_template_name(website.get("template_name", ""))
+        rendered_html = render_template(clean_tpl, website.get("form_data") or {}, cloudfront_base)
+        if rendered_html and not rendered_html.startswith("<h1>Template Error"):
+            resp = Response(rendered_html, mimetype='text/html')
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            resp.headers["Pragma"] = "no-cache"
+            resp.headers["Expires"] = "0"
+            return resp
+    except Exception as e:
+        print(f"Direct resolve template render failed: {e}")
+
+    # 3. Fallback to CloudFront live_url
     if website.get("live_url"):
         try:
-            # ✅ 1. Config.json ah thedina, JSON ah return pannurom
-            if path == "config.json":
-                return jsonify(website.get("form_data", {}))
-            
-            # ✅ 2. Illana, CloudFront la irundha HTML ah return pannurom
-            response = requests.get(website["live_url"], verify=False)
-            return Response(response.text, mimetype='text/html')
+            target_url = f"{website['live_url']}?v={int(datetime.now().timestamp())}"
+            response = requests.get(target_url, verify=False, timeout=5)
+            resp = Response(response.text, mimetype='text/html')
+            resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            return resp
         except Exception as e:
             return jsonify({"message": f"Error fetching CloudFront: {str(e)}", "success": False}), 500
             
     return jsonify({"message": "Live URL not generated", "success": False}), 404
-#==========================================================
+
+# ============================================================
 # GET ONE — by ID
 # ============================================================
 @websites_bp.route("/<website_id>", methods=["GET"])
@@ -132,19 +149,39 @@ def edit(website_id):
     
     if doc and doc.get("status") == "published":
         try:
-            template_name = doc.get("template_name", "unknown")
+            db = get_db()
+            template_name = doc.get("template_name", "portfolio-01")
+            clean_template_name = normalize_template_name(template_name)
+            cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net"
+
+            username = doc.get("username")
+            if not username:
+                user = db.users.find_one({"_id": ObjectId(doc.get("user_id"))})
+                username = user.get("username") if user else f"site-{website_id}"
+                db.websites.update_one({"_id": ObjectId(website_id)}, {"$set": {"username": username}})
+
+            live_url = f"{cloudfront_base}/{username}/index.html"
+            db.websites.update_one(
+                {"_id": ObjectId(website_id)},
+                {"$set": {
+                    "template_name": clean_template_name,
+                    "live_url": live_url,
+                    "updated_at": datetime.now()
+                }}
+            )
+
+            # ✅ Fresh HTML generated from user's latest edited form data!
+            html_content = render_template(clean_template_name, doc.get("form_data") or {}, cloudfront_base)
             
-            # ✅ Local la build aana HTML file ah padikkalam (illa dummy HTML)
-            html_content = "<html><body><h1>Website published</h1></body></html>" 
-            
+            # ✅ Trigger publish via SQS -> Lambda -> S3 -> CloudFront
             trigger_publish(
                 website_id=str(website_id),
                 user_id=str(g.user_id),
-                username=str(doc.get("username", "")),
-                template_name=template_name,
+                username=str(username),
+                template_name=clean_template_name,
                 html_content=html_content
             )
-            print(f"✅ Updated publish for site-{website_id}")
+            print(f"✅ Updated publish triggered for {username} ({clean_template_name})")
         except Exception as e:
             print(f"❌ Edit publish failed: {e}")
             

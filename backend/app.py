@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, send_from_directory, request, Response
 import os
+import time
 import requests
 from config import Config
 from flask_cors import CORS
@@ -8,7 +9,7 @@ from database.indexes import create_indexes
 from database.seed import run_all_seeds
 from middleware.error_handler import register_error_handlers
 from blueprints.settings import settings_bp
-# Test CI/CD
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -64,7 +65,7 @@ def create_app():
         return send_from_directory(Config.UPLOAD_FOLDER, subpath)
 
     # ============================================================
-    # ✅ FIXED: SUBDOMAIN ROUTING (Direct ah CloudFront fetch)
+    # ✅ FIXED: SUBDOMAIN ROUTING (Direct render with CloudFront fallback)
     # ============================================================
     @app.route('/', defaults={'path': ''}, subdomain='<subdomain>')
     @app.route('/<path:path>', subdomain='<subdomain>')
@@ -73,8 +74,8 @@ def create_app():
         if subdomain in ['www', 'api']:
             return jsonify({"message": "Not found"}), 404
 
-        # Direct ah DB la check panni, CloudFront la irundhu fetch panrom
         from database.mongo import get_db
+        from utils.template_engine import render_template, normalize_template_name
         
         db = get_db()
         website = db.websites.find_one({
@@ -85,11 +86,32 @@ def create_app():
         if not website:
             return jsonify({"message": "Website not found in DB", "success": False}), 404
 
+        if path == "config.json":
+            return jsonify(website.get("form_data", {}))
+
+        cloudfront_base = "https://d24e11dzjriy3b.cloudfront.net"
+
+        # 1. Direct render from DB (Always 100% fresh, reflects edits instantly!)
+        try:
+            clean_tpl = normalize_template_name(website.get("template_name", ""))
+            rendered_html = render_template(clean_tpl, website.get("form_data") or {}, cloudfront_base)
+            if rendered_html and not rendered_html.startswith("<h1>Template Error"):
+                resp = Response(rendered_html, mimetype='text/html')
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+                return resp
+        except Exception as e:
+            print(f"Direct template render failed, falling back to CloudFront: {e}")
+
+        # 2. Fallback to CloudFront live_url
         if website.get("live_url"):
             try:
-                # ✅ Ippo namma direct ah CloudFront la irundhu fetch panrom
-                response = requests.get(website["live_url"], verify=False)
-                return Response(response.text, mimetype='text/html')
+                target_url = f"{website['live_url']}?v={int(time.time())}"
+                response = requests.get(target_url, verify=False, timeout=5)
+                resp = Response(response.text, mimetype='text/html')
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                return resp
             except Exception as e:
                 return jsonify({"message": f"Error fetching CloudFront: {str(e)}", "success": False}), 500
                 
