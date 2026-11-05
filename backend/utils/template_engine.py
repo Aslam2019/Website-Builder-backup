@@ -1,5 +1,6 @@
 import os
 import json
+import re
 from jinja2 import Environment, FileSystemLoader, Template
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates")
@@ -93,6 +94,9 @@ def render_template(template_name, form_data, cloudfront_base):
         or "Website"
     )
 
+    new_site_data_json = json.dumps(fixed_data)
+    site_data_pattern = r'window\.__SITE_DATA__\s*=\s*\{.*?\};'
+
     try:
         template = env.get_template(template_path)
         html_output = template.render(
@@ -103,8 +107,11 @@ def render_template(template_name, form_data, cloudfront_base):
             template_slug=clean_name,
             title=title
         )
-        if "window.__SITE_DATA__" not in html_output:
-            data_script = f'<script>window.__SITE_DATA__ = {json.dumps(fixed_data)}; window.__UPLOADS_BASE__ = "{cloudfront_base}";</script>'
+        if "window.__SITE_DATA__" in html_output:
+            # Overwrite any hardcoded or previously baked SITE_DATA in the template file
+            html_output = re.sub(site_data_pattern, f'window.__SITE_DATA__ = {new_site_data_json};', html_output, flags=re.DOTALL)
+        else:
+            data_script = f'<script>window.__SITE_DATA__ = {new_site_data_json}; window.__UPLOADS_BASE__ = "{cloudfront_base}";</script>'
             html_output = html_output.replace("</body>", f"{data_script}</body>")
         return html_output
     except Exception as e:
